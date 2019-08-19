@@ -129,13 +129,11 @@ __Sample Output from Above Code__
  Modeling complete.
 ```
 
+**Using some outputs from each object, you can visualize the topic models**
+
 <img src="assets/images/intertopic_distance_map.png" />
 
-```python
-split_dict_all_comms['10'].model
-
-<gensim.models.ldamodel.LdaModel at 0x12daa5e80>
-```
+**You can also use some outputs from each object, such as the <code>.sources</code>, to print out more granular information about the community hub (top 10 sources and/or targets in the network).**
 
 ```python
 split_dict_all_comms['12'].sources
