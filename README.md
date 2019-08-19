@@ -44,6 +44,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 * ```get_hubs_sources```: TBA.
 * ```print_keywords```: TBA. 
 
+
 __Sample code__
 
 ```python
@@ -127,6 +128,8 @@ __Sample Output from Above Code__
 
  Modeling complete.
 ```
+
+<img src="assets/images/intertopic_distance_map.png" />
 
 ```python
 split_dict_all_comms['10'].model
