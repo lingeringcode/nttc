@@ -32,7 +32,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 ## Functions
 
-PyLimn contains the following functions:
+```nttc``` contains the following functions:
 
 * ```get_csv```: Loads CSV data as a pandas DataFrame.
 * ```get_comm_nums```: Filters Dataframe column community values into a List.
@@ -132,4 +132,18 @@ __Sample Output from Above Code__
 split_dict_all_comms['10'].model
 
 <gensim.models.ldamodel.LdaModel at 0x12daa5e80>
+```
+
+```python
+split_dict_all_comms['12'].sources
+
+[['12',
+  'username1',
+  'Example tweet 1 printed out from hub source.',
+  399],
+ ['12',
+  'username2',
+  'Example tweet 2 printed out from hub source.',
+  294],
+  # ... (top 10 retweeted tweets from sources in the network)
 ```
