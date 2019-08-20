@@ -98,7 +98,7 @@ class communitiesObject:
     '''an object class with attributes for various matched-community data and metadata'''
     def __init__(self, tweet_slice=None, split_docs=None, id2word=None, texts=None, 
                  corpus=None, readme=None, model=None, perplexity=None, coherence=None, 
-                 sources=None, targets=None, full_hub=None):
+                 top_rts=None, targets=None, full_hub=None):
         self.tweet_slice = tweet_slice
         self.split_docs = split_docs
         self.id2word = id2word
@@ -108,7 +108,7 @@ class communitiesObject:
         self.model = model
         self.perplexity = perplexity
         self.coherence = coherence
-        self.sources = sources
+        self.top_rts = top_rts
         self.targets = targets
         self.full_hub = full_hub
         
@@ -312,21 +312,21 @@ def tm_maker(**kwargs):
     return kwargs['split_comms']
 
 '''
-    Appends hubs' sources data to respective period and community object
+    Appends hubs' top RT'd tweets and usersto respective period and community object
         -- Args: 
             Dataframe of hub targets,
             Dict of Objects with .sources,
             String of period number
-        -- Returns: Dict Object with new .targets per Object
+        -- Returns: Dict Object with new .top_rts per Object
 '''
-def get_hubs_sources(**kwargs):
+def get_hubs_top_rts(**kwargs):
     dft = kwargs['dft']
-    all_sources = dft.loc[:, lambda dft: ['community', 'username', 'tweets', 'retweets_count']]
+    all_tweets = dft.loc[:, lambda dft: ['community', 'username', 'tweets', 'retweets_count']]
     for tfd in kwargs['tdo']:
-        per_comm_sources = all_sources[all_sources['community'] == tfd]
-        per_comm_sources.rename(columns={'username': 'sources'}, inplace=True)
-        top10_renamed_per_comm_sources = per_comm_sources[:10].reset_index(drop=True)
-        kwargs['tdo'][tfd].sources = top10_renamed_per_comm_sources
+        per_comm_rts = all_tweets[all_tweets['community'] == tfd]
+        per_comm_rts.rename(columns={'username': 'top_rters'}, inplace=True)
+        top10_renamed_per_comm_rts = per_comm_rts[:10].reset_index(drop=True)
+        kwargs['tdo'][tfd].top_rts = top10_renamed_per_comm_rts
     
     return kwargs['tdo']
 
@@ -349,13 +349,13 @@ def get_hubs_targets(**kwargs):
     return kwargs['dict_obj']
 
 '''
-    Merges hubs' sources and targets data as a full list per Community
+    Merges hubs' top RTs and targets data as a full list per Community
         -- Args:
         -- Returns: 
 '''
-def merge_sources_targets(fo):
+def merge_rts_targets(fo):
     for f in fo:
-        dfs = [df for df in [fo[f].targets, fo[f].sources]]
+        dfs = [df for df in [fo[f].targets, fo[f].top_rts]]
         df_merged = pd.concat(dfs, axis=1).reset_index(drop=True)
         fo[f].full_hub = df_merged.reset_index(drop=True)
     return fo
