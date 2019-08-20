@@ -145,15 +145,15 @@ __Sample Output from Above Code__
 
 **Add targets to each community's ```.target``` property**
 
-<img src="assets/images/add_targets.png" />
+<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/add_targets.png" />
 
 **Merge Top 10 RT and target information to each community's ```.full_hub``` property**
 
-<img src="assets/images/merge_targets_top_rts.png" />
+<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/merge_targets_top_rts.png" />
 
 **Using some outputs from each object, you can visualize the topic models**
 
-<img src="assets/images/intertopic_distance_map.png" />
+<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/intertopic_distance_map.png" />
 
 **You can also output the entire hub as a CSV for closer analysis**
 
