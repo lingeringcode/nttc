@@ -120,6 +120,12 @@ def get_csv(sys_path, __file_path__, dtype_dict):
                                error_bad_lines=False)
     return df_tw
 
+def write_csv(dal, sys_path, __file_path__):
+    dal.to_csv(join(sys_path, __file_path__), 
+                                sep=',',
+                                encoding='utf-8',
+                                index=False)
+
 '''
     Filters community column values into List
 '''
@@ -294,3 +300,16 @@ def get_hubs_sources(dft, tms_full_dict):
 def print_keywords(cn, lda_model, corpus):
     print(cn)
     pprint(lda_model.print_topics())
+
+'''
+    Args: Hub Targets, Period #, Community #, Target List, Empty list
+    Returns new list
+'''
+def comm_list_writer(dah, pn, cn, tl):
+    gl = []
+    hc = dah[(dah.period == pn) & (dah.community == cn)]
+    src_list = hc.values.tolist()
+    for i in range(10):
+        new_row = src_list[i] + tl[i][1:] # Skip comm value in target list
+        gl.append(new_row)
+    return gl # Return concatnated list
