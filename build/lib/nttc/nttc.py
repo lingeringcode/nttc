@@ -91,13 +91,14 @@ import numpy as np
     .perplexity
     .coherence
     .sources
+    .targets
+    .full_hub
 '''
 class communitiesObject:
     '''an object class with attributes for various matched-community data and metadata'''
-    # 'tweet_slice', 'split_docs', 'id2word', 'texts', 'corpus', 'readme', 'model', 'scores', 'sources'
     def __init__(self, tweet_slice=None, split_docs=None, id2word=None, texts=None, 
                  corpus=None, readme=None, model=None, perplexity=None, coherence=None, 
-                 sources=None):
+                 sources=None, targets=None, full_hub=None):
         self.tweet_slice = tweet_slice
         self.split_docs = split_docs
         self.id2word = id2word
@@ -108,10 +109,12 @@ class communitiesObject:
         self.perplexity = perplexity
         self.coherence = coherence
         self.sources = sources
+        self.targets = targets
+        self.full_hub = full_hub
         
         
 '''
-    Load the CSV data
+    Load CSV data
 '''
 def get_csv(sys_path, __file_path__, dtype_dict):
     df_tw = pd.read_csv(join(sys_path, __file_path__), 
@@ -119,6 +122,31 @@ def get_csv(sys_path, __file_path__, dtype_dict):
                                dtype=dtype_dict,
                                error_bad_lines=False)
     return df_tw
+
+'''
+    Write CSV data
+'''
+def write_csv(dal, sys_path, __file_path__):
+    dal.to_csv(join(sys_path, __file_path__), 
+                                sep=',',
+                                encoding='utf-8',
+                                index=False)
+
+'''
+    Writes all objects and their respective source/target information
+    to a CSV of "hubs"
+'''
+def create_hub_csv_files(**kwargs):
+    list_of_dfs = []
+    for fb in kwargs['full_obj']:
+        list_of_dfs.append(kwargs['full_obj'][fb].full_hub)
+    df_merged = pd.concat(list_of_dfs, axis=0).reset_index(drop=True)
+    if kwargs['drop_dup_cols'] == True:
+        df_merged_drop_dup = df_merged.loc[:,~df_merged.columns.duplicated()]
+        write_csv(df_merged_drop_dup, kwargs['sys_path'], kwargs['output_file'])
+    else:
+        write_csv(df_merged_drop_dup, kwargs['sys_path'], kwargs['output_file'])
+    print('File written to system.')
 
 '''
     Filters community column values into List
@@ -236,61 +264,98 @@ def clean_split_docs(pcpd):
 '''
     Functions to create data for TM
 '''
-def tm_maker(random_seed, split_dict_all_comms, num_topics, random_state, update_every, chunksize, passes, alpha, per_word_topics):
-    np.random.seed(random_seed)
+def tm_maker(**kwargs):
+    np.random.seed(kwargs['random_seed'])
     nltk.download('wordnet')
-    for split in split_dict_all_comms:
+    for split in kwargs['split_comms']:
         # Create Dictionary
-        id2word = corpora.Dictionary(split_dict_all_comms[split].split_docs.tolist())
-        split_dict_all_comms[split].id2word = id2word
+        id2word = corpora.Dictionary(kwargs['split_comms'][split].split_docs.tolist())
+        kwargs['split_comms'][split].id2word = id2word
         
         # Create Texts
-        texts = split_dict_all_comms[split].split_docs.tolist()
-        split_dict_all_comms[split].texts = texts
+        texts = kwargs['split_comms'][split].split_docs.tolist()
+        kwargs['split_comms'][split].texts = texts
         
         # Term Document Frequency
         corpus = [id2word.doc2bow(text) for text in texts]
-        split_dict_all_comms[split].corpus = corpus
+        kwargs['split_comms'][split].corpus = corpus
         
         # Human readable format of corpus (term-frequency)
         read_me = [[(id2word[id], freq) for id, freq in cp] for cp in corpus[:1]]
-        split_dict_all_comms[split].readme = read_me
+        kwargs['split_comms'][split].readme = read_me
         
         # Build LDA model
         lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
                                                    id2word=id2word,
-                                                   num_topics=num_topics, 
-                                                   random_state=random_state,
-                                                   update_every=update_every,
-                                                   chunksize=chunksize,
-                                                   passes=passes,
-                                                   alpha=alpha,
-                                                   per_word_topics=per_word_topics)
+                                                   num_topics=kwargs['num_topics'], 
+                                                   random_state=kwargs['random_state'],
+                                                   update_every=kwargs['update_every'],
+                                                   chunksize=kwargs['chunksize'],
+                                                   passes=kwargs['passes'],
+                                                   alpha=kwargs['alpha'],
+                                                   per_word_topics=kwargs['per_word_topics'])
         
-        split_dict_all_comms[split].model = lda_model
+        kwargs['split_comms'][split].model = lda_model
         
         # Compute Perplexity
         perplexity = lda_model.log_perplexity(corpus)
-        split_dict_all_comms[split].perplexity = perplexity
+        kwargs['split_comms'][split].perplexity = perplexity
         print('\n', split, ' Perplexity: ', perplexity)  # a measure of how good the model is. lower the better.
+        
         # Compute Coherence Score
         coherence_model_lda = CoherenceModel(model=lda_model, texts=texts, dictionary=id2word, coherence='c_v')
         coherence_lda = coherence_model_lda.get_coherence()
-        split_dict_all_comms[split].coherence = coherence_lda
+        kwargs['split_comms'][split].coherence = coherence_lda
         print('\n', split, ' Coherence Score: ', coherence_lda)
         
     print('\n Modeling complete.')
-    return split_dict_all_comms
+    return kwargs['split_comms']
 
-# Divvy up users from original dataframe
-def get_hubs_sources(dft, tms_full_dict):
+'''
+    Appends hubs' sources data to respective period and community object
+        -- Args: 
+            Dataframe of hub targets,
+            Dict of Objects with .sources,
+            String of period number
+        -- Returns: Dict Object with new .targets per Object
+'''
+def get_hubs_sources(**kwargs):
+    dft = kwargs['dft']
     all_sources = dft.loc[:, lambda dft: ['community', 'username', 'tweets', 'retweets_count']]
-    for tfd in tms_full_dict:
+    for tfd in kwargs['tdo']:
         per_comm_sources = all_sources[all_sources['community'] == tfd]
-        tms_full_dict[tfd].sources = per_comm_sources.values.tolist()[:10]
+        per_comm_sources.rename(columns={'username': 'sources'}, inplace=True)
+        top10_renamed_per_comm_sources = per_comm_sources[:10].reset_index(drop=True)
+        kwargs['tdo'][tfd].sources = top10_renamed_per_comm_sources
     
-    return tms_full_dict
+    return kwargs['tdo']
 
-def print_keywords(cn, lda_model, corpus):
-    print(cn)
-    pprint(lda_model.print_topics())
+'''
+    Appends hubs' targets data to respective period and community object
+        -- Args: 
+            Dataframe of hub targets,
+            Dict of Objects,
+            String of column name for period,
+            String of period number,
+            String of column name for the community number
+        -- Returns: Dict Object with new .targets per Object
+'''
+def get_hubs_targets(**kwargs):
+    for f in kwargs['dict_obj']:
+        hub_comm = kwargs['hubs'][(kwargs['hubs'][kwargs['col_period']] == kwargs['pn']) & (kwargs['hubs'][kwargs['col_comm']] == f)]
+        hub_comm = hub_comm.reset_index(drop=True)
+        hub_comm.rename(columns={'username': 'targets'}, inplace=True)
+        kwargs['dict_obj'][f].targets = hub_comm
+    return kwargs['dict_obj']
+
+'''
+    Merges hubs' sources and targets data as a full list per Community
+        -- Args:
+        -- Returns: 
+'''
+def merge_sources_targets(fo):
+    for f in fo:
+        dfs = [df for df in [fo[f].targets, fo[f].sources]]
+        df_merged = pd.concat(dfs, axis=1).reset_index(drop=True)
+        fo[f].full_hub = df_merged.reset_index(drop=True)
+    return fo
