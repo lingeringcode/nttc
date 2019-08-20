@@ -8,7 +8,7 @@ A set of functions that process and create topic models from a sample of communi
 
 It assumes you seek an answer to the following questions:
 1. What communities persist or are ephemeral across periods in the copora, and when?
-2. What can these communities be named, based on their sources, targets, topics, and top-RT'd tweets?
+2. What can these communities be named, based on their top 10 RTs and users, targets, as well as generated topic models?
 3. Of these communities, what are their topics over time?
 
 Accordingly, it assumes you have a desire to investigate tweets from each detected community across already defined periodic episodes with the goal of naming each community AND examining their respective topics over time in the corpus.
