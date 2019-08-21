@@ -143,13 +143,13 @@ __Sample Output from Above Code__
  Modeling complete.
 ```
 
-**Add targets to each community's ```.target``` property**
+**Add top mentioned users to each community's ```.top_mentions``` property**
 
-<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/add_targets.png" />
+<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/add_mentions.png" />
 
-**Merge Top 10 RT and target information to each community's ```.full_hub``` property**
+**Merge top RT and mentioned users (in-degree) information to each community's ```.full_hub``` property**
 
-<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/merge_targets_top_rts.png" />
+<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/merge_mentions_top_rts.png" />
 
 **Using some outputs from each object, you can visualize the topic models**
 

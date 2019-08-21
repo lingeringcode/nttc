@@ -2,7 +2,6 @@
 #!/usr/bin/python3
 
 # NTTC (Name That Twitter Community!) A Tweets Topic Modeling Processor for Python 3
-# release 1 (09/01/2019)
 # by Chris Lindgren <chris.a.lindgren@gmail.com>
 # Distributed under the BSD 3-clause license. 
 # See LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause for details.
@@ -90,15 +89,15 @@ import numpy as np
     .model
     .perplexity
     .coherence
-    .sources
-    .targets
+    .top_rts
+    .top_mentions
     .full_hub
 '''
 class communitiesObject:
     '''an object class with attributes for various matched-community data and metadata'''
     def __init__(self, tweet_slice=None, split_docs=None, id2word=None, texts=None, 
                  corpus=None, readme=None, model=None, perplexity=None, coherence=None, 
-                 top_rts=None, targets=None, full_hub=None):
+                 top_rts=None, top_mentions=None, full_hub=None):
         self.tweet_slice = tweet_slice
         self.split_docs = split_docs
         self.id2word = id2word
@@ -109,7 +108,7 @@ class communitiesObject:
         self.perplexity = perplexity
         self.coherence = coherence
         self.top_rts = top_rts
-        self.targets = targets
+        self.top_mentions = top_mentions
         self.full_hub = full_hub
         
         
@@ -325,27 +324,27 @@ def get_hubs_top_rts(**kwargs):
     for tfd in kwargs['tdo']:
         per_comm_rts = all_tweets[all_tweets['community'] == tfd]
         per_comm_rts.rename(columns={'username': 'top_rters'}, inplace=True)
-        top10_renamed_per_comm_rts = per_comm_rts[:10].reset_index(drop=True)
-        kwargs['tdo'][tfd].top_rts = top10_renamed_per_comm_rts
+        top_renamed_per_comm_rts = per_comm_rts[:kwargs['top_num']].reset_index(drop=True)
+        kwargs['tdo'][tfd].top_rts = top_renamed_per_comm_rts
     
     return kwargs['tdo']
 
 '''
-    Appends hubs' targets data to respective period and community object
+    Appends hubs' top mentions data to respective period and community object
         -- Args: 
-            Dataframe of hub targets,
+            Dataframe of hub top mentions,
             Dict of Objects,
             String of column name for period,
             String of period number,
             String of column name for the community number
         -- Returns: Dict Object with new .targets per Object
 '''
-def get_hubs_targets(**kwargs):
+def get_hubs_top_mentions(**kwargs):
     for f in kwargs['dict_obj']:
         hub_comm = kwargs['hubs'][(kwargs['hubs'][kwargs['col_period']] == kwargs['pn']) & (kwargs['hubs'][kwargs['col_comm']] == f)]
         hub_comm = hub_comm.reset_index(drop=True)
-        hub_comm.rename(columns={'username': 'targets'}, inplace=True)
-        kwargs['dict_obj'][f].targets = hub_comm
+        hub_comm.rename(columns={'username': 'top_mentions'}, inplace=True)
+        kwargs['dict_obj'][f].top_mentions = hub_comm
     return kwargs['dict_obj']
 
 '''
@@ -353,9 +352,9 @@ def get_hubs_targets(**kwargs):
         -- Args:
         -- Returns: 
 '''
-def merge_rts_targets(fo):
+def merge_rts_mentions(fo):
     for f in fo:
-        dfs = [df for df in [fo[f].targets, fo[f].top_rts]]
+        dfs = [df for df in [fo[f].top_mentions, fo[f].top_rts]]
         df_merged = pd.concat(dfs, axis=1).reset_index(drop=True)
         fo[f].full_hub = df_merged.reset_index(drop=True)
     return fo
