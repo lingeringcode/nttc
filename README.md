@@ -8,7 +8,7 @@ A set of functions that process and create topic models from a sample of communi
 
 It assumes you seek an answer to the following questions:
 1. What communities persist or are ephemeral across periods in the copora, and when?
-2. What can these communities be named, based on their top 10 RTs and users, targets, as well as generated topic models?
+2. What can these communities be named, based on their top RTs and users, top mentioned users, as well as generated topic models?
 3. Of these communities, what are their topics over time?
 
 Accordingly, it assumes you have a desire to investigate tweets from each detected community across already defined periodic episodes with the goal of naming each community AND examining their respective topics over time in the corpus.
@@ -36,7 +36,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 * ```get_csv```: Loads CSV data as a pandas DataFrame.
 * ```write_csv```: Writes DataFrame as a CSV file.
-* ```create_hub_csv_files```: Writes all of the objects' source/target information as a CSV of "hubs"
+* ```create_hub_csv_files```: Writes all of the objects' top rt'd/mentions information as a CSV of "hubs"
 * ```get_comm_nums```: Filters Dataframe column community values into a List.
 * ```get_all_comms```: Slice the full set to community and their respective tweets. Arguments: Full dataframe, strings of column names for community and tweets.
 * ```comm_dict_writer```: Writes per Community tweets into a dictionary.
@@ -45,19 +45,19 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 * ```tm_maker```: Creates data for TM and builds an LDA TM. 
 * ```get_hubs_top_rts```: Appends hubs' top 10 RT'd tweets and usernames to respective period and community object.
   - Args:
-    - Dataframe of hub targets,
+    - Dataframe of hub top mentions,
     - Dict of Objects with .top_rts,
     - String of period number
   - Returns: Dict Object with new .top_rts per Object
-* ```get_hubs_targets```: Appends hubs' targets data to respective period and community object.
+* ```get_hubs_mentions```: Appends hubs' mentions data to respective period and community object.
   - Args:
-    - Dataframe of hub targets,
+    - Dataframe of hub mentions,
     - Dict of Objects,
     - String of column name for period,
     - String of period number,
     - String of column name for the community number
-  - Returns: Dict Object with new .targets per Object
-* ```merge_rts_targets```: Merges hubs' sources and targets data as a full list per Community.
+  - Returns: Dict Object with new .top_mentions per Object
+* ```merge_rts_mentions```: Merges hubs' sources and mentions data as a full list per Community.
 
 
 __Build a topic model per Community and save all variables to respective object properties.__

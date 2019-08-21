@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 setup(
   name = 'nttc',
   packages = ['nttc'], # this must be the same as the name above
-  version = '0.2.5',
+  version = '0.2.6',
   description = 'A set of functions that process and create topic models from a sample of community-detected Twitter networks\' tweets.',
   author = 'Chris A. Lindgren',
   author_email = 'chris.a.lindgren@gmail.com',
