@@ -12,8 +12,9 @@
 #    1.) What communities persist or are ephemeral across periods in the copora, and when?
 #    2.) What can these communities be named, based on their sources, targets, topics, and top-RT'd tweets?
 #    3.) Of these communities, what are their topics over time?
-# Accordingly, it assumes you have a desire to investigate tweets from each detected community across already defined periodic episodes
-# with the goal of naming each community AND examining their respective topics over time in the corpus.
+# Accordingly, it assumes you have a desire to investigate tweets from each detected community across 
+# already defined periodic episodes with the goal of naming each community AND examining their 
+# respective topics over time in the corpus.
 
 # It functions only with Python 3.x and is not backwards-compatible (although one could probably branch off a 2.x port with minimal effort).
 
@@ -22,11 +23,15 @@ from os import listdir
 from os.path import join
 import csv
 import pandas as pd
+from collections import Counter
+import numpy as np
+import matplotlib.pyplot as plt
 import functools
 import operator
 import re
 import emoji
 import string
+import tsm
 
 # Stopwords
 # Import stopwords with nltk.
@@ -97,7 +102,8 @@ class communitiesObject:
     '''an object class with attributes for various matched-community data and metadata'''
     def __init__(self, tweet_slice=None, split_docs=None, id2word=None, texts=None, 
                  corpus=None, readme=None, model=None, perplexity=None, coherence=None, 
-                 top_rts=None, top_mentions=None, full_hub=None):
+                 top_rts=None, top_mentions=None, full_hub=None, best_matches_nodes=None,
+                 sorted_filtered_comms=None):
         self.tweet_slice = tweet_slice
         self.split_docs = split_docs
         self.id2word = id2word
@@ -110,6 +116,8 @@ class communitiesObject:
         self.top_rts = top_rts
         self.top_mentions = top_mentions
         self.full_hub = full_hub
+        self.best_matches_nodes = best_matches_nodes
+        self.sorted_filtered_comms = sorted_filtered_comms
         
         
 '''
@@ -358,3 +366,137 @@ def merge_rts_mentions(fo):
         df_merged = pd.concat(dfs, axis=1).reset_index(drop=True)
         fo[f].full_hub = df_merged.reset_index(drop=True)
     return fo
+
+'''
+    Processes input dataframe of network community hubs for use in the tsm.match_communities() function
+        -- Args: A dataframe with Period, Period_Community (1_0), and top mentioned (highest in-degree) users
+        -- Returns: Dictionary of per Period with per Period_Comm hub values as lists:
+            {'1': {'1_0': ['nancypelosi',
+               'chuckschumer',
+               'senfeinstein',
+               'kamalaharris',
+               'barackobama',
+               'senwarren',
+               'hillaryclinton',
+               'senkamalaharris',
+               'repadamschiff',
+               'corybooker'],
+               ...
+               },
+               ...
+               '10': {'10_3': [...] }
+            }
+'''
+def matching_dict_processor(**kwargs):
+    full_dict = {}
+    for index, row in kwargs['df'].iterrows():
+        period_check = kwargs['df'].values[index][0]
+        key_check = kwargs['df'].values[index][1]
+        if index > 0 and (period_check in full_dict):
+            if (kwargs['df'].values[index-1][1] == key_check) and (kwargs['df'].values[index-1][0] == period_check) and (key_check in full_dict[period_check]):
+                # Update to full_dict[period_check][key_check]
+                full_dict[period_check][key_check].append(kwargs['df'].values[index][2])
+            elif  (kwargs['df'].values[index-1][1] == key_check) and (key_check not in full_dict[period_check]):
+                # Create new key-value and update to full_dict
+                full_dict[period_check].update( { key_check: [kwargs['df'].values[index][2]] } )
+        elif index > 0 and (period_check not in full_dict):
+            full_dict.update( {period_check: { key_check: [kwargs['df'].values[index][2]] } } )
+        elif index == 0:
+            full_dict.update( {period_check: { key_check: [kwargs['df'].values[index][2]] } } )
+    
+    if kwargs['net_obj'] is None:
+        return full_dict
+    elif kwargs['net_obj'] is not None:
+        kwargs['net_obj'].best_matches_nodes = full_dict
+        return kwargs['net_obj']
+
+'''
+    Takes period dict from matching_dict_processor() and submits to tsm.match_communities() method.
+    Assigns, filters, and sorts the returned values into 
+        -- Args: Dictionary of per Period with per Period_Comm hub values as lists; filter_jacc threshold value (float) between 0 and 1.
+        -- Returns: List of tuples: period_communityxperiod_community, JACC score 
+            [('1_0x4_0', 0.4286),
+            ('1_0x2_11', 0.4615),
+            ('1_0x3_5', 0.4615),
+            ... ]
+'''
+def match_maker(**kwargs):
+    pc_matching = {} # Assign with complete best matches
+    for f1 in kwargs['full_dict']:
+        for f2 in kwargs['full_dict']:
+            if f1 != f2:
+                # Runs similarity index (Jaccard's Co-efficient) on all period-comm combinations
+                match = tsm.match_communities(kwargs['full_dict'][f1], kwargs['full_dict'][f2], weight_edges=False)
+                the_key = f1 + 'x' + f2
+                pc_matching.update({ the_key: match.best_matches })
+    
+    all_comm_scores = []
+    for bmd in pc_matching:
+        for b in pc_matching[bmd]:
+            all_comm_scores.append( (b, pc_matching[bmd][b]) )
+
+    sorted_all_comm_scores = sorted(all_comm_scores, key=lambda x: x[1])
+
+    # Filter out low scores
+    filtered_comm_scores = []
+    for s in sorted_all_comm_scores:
+        if s[1] > kwargs['filter_jacc']:
+            filtered_comm_scores.append(s)
+
+    sorted_filtered_comm_scores = sorted(filtered_comm_scores, key=lambda x: x[0][0], reverse=False)
+    
+    if kwargs['net_obj'] is None:
+        return sorted_filtered_comm_scores
+    elif kwargs['net_obj'] is not None:
+        kwargs['net_obj'].sorted_filtered_comms = sorted_filtered_comm_scores
+        return kwargs['net_obj']
+
+'''
+    Plot the community comparisons as a bar chart
+    -- Args:
+        ax=None # Resets the chart
+        counter = List of tuples returned from match_maker(), 
+        path = String of desired path to directory, 
+        output = String value of desired file name (.png)
+    - Returns: Nothing.
+            
+'''
+def plot_bar_from_counter(**kwargs):
+    if kwargs['ax'] is None:
+        fig = plt.figure()
+        kwargs['ax'] = fig.add_subplot(111)
+    
+    frequencies = []
+    names = []
+    
+    for c in kwargs['counter']:
+        frequencies.append(c[1])
+        names.append(c[0])
+    
+    N = len(names)
+    x_coordinates = np.arange(len(kwargs['counter']))
+    kwargs['ax'].bar(x_coordinates, frequencies, align='center')
+
+    kwargs['ax'].xaxis.set_major_locator(plt.FixedLocator(x_coordinates))
+    kwargs['ax'].xaxis.set_major_formatter(plt.FixedFormatter(names))
+    
+    plt.xticks(range(N)) # add loads of ticks
+    plt.xticks(rotation='vertical')
+
+    plt.gca().margins(x=0)
+    plt.gcf().canvas.draw()
+    tl = plt.gca().get_xticklabels()
+    maxsize = max([t.get_window_extent().width for t in tl])
+    m = 0.2 # inch margin
+    s = maxsize/plt.gcf().dpi*N+2*m
+    margin = m/plt.gcf().get_size_inches()[0]
+
+    plt.gcf().subplots_adjust(left=margin, right=1.-margin)
+    plt.gcf().set_size_inches(s, plt.gcf().get_size_inches()[1])
+
+    # Tweak spacing to prevent clipping of tick-labels
+    plt.subplots_adjust(bottom=-0.15)
+    plt.savefig(join(kwargs['path'], kwargs['output']))
+    print('File ', kwargs['output'], ' saved to ', kwargs['path'])
+    plt.show()
+

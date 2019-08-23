@@ -11,7 +11,7 @@ It assumes you seek an answer to the following questions:
 2. What can these communities be named, based on their top RTs and users, top mentioned users, as well as generated topic models?
 3. Of these communities, what are their topics over time?
 
-Accordingly, it assumes you have a desire to investigate tweets from each detected community across already defined periodic episodes with the goal of naming each community AND examining their respective topics over time in the corpus.
+Accordingly, it assumes you have a desire to investigate communities across periods and the tweets from each detected community across already defined periodic episodes with the goal of naming each community AND examining their respective topics over time in the corpus.
 
 It functions only with Python 3.x and is not backwards-compatible (although one could probably branch off a 2.x port with minimal effort).
 
@@ -19,6 +19,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 ## System requirements
 
+* [tsm](https://github.com/dfreelon/TSM) - Current version on Github, not Python Package Index, so you will need to manually download and install from Github (as of 08/23/19).
 * [nltk](https://www.nltk.org/)
 * pandas
 * numpy
@@ -58,6 +59,38 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
     - String of column name for the community number
   - Returns: Dict Object with new .top_mentions per Object
 * ```merge_rts_mentions```: Merges hubs' sources and mentions data as a full list per Community.
+* ```matching_dict_processor```: Processes input dataframe of network community hubs for use in the tsm.match_communities() function.
+    - Args: A dataframe with Period, Period_Community (1_0), and top mentioned (highest in-degree) users
+    - Returns: Dictionary of per Period with per Period_Comm hub values as lists:<pre>
+            {'1': {'1_0': ['nancypelosi',
+               'chuckschumer',
+               'senfeinstein',
+               'kamalaharris',
+               'barackobama',
+               'senwarren',
+               'hillaryclinton',
+               'senkamalaharris',
+               'repadamschiff',
+               'corybooker'],
+               ...
+               },
+               ...
+               '10': {'10_3': [...] }
+            }</pre>
+* ```match_maker```: Takes period dict from matching_dict_processor() and submits to tsm.match_communities() method. Assigns, filters, and sorts the returned values into 
+    - Args: Dictionary of per Period with per Period_Comm hub values as lists; filter_jacc threshold value (float) between 0 and 1.
+    - Returns: List of tuples: period_communityxperiod_community, JACC score<pre>
+            [('1_0x4_0', 0.4286),
+            ('1_0x2_11', 0.4615),
+            ('1_0x3_5', 0.4615),
+            ... ]</pre>
+* ```plot_bar_from_counter```: Plot the community comparisons as a bar chart.
+    - Args:
+      - ax=None # Resets the chart
+      - counter = List of tuples returned from match_maker(), 
+      - path = String of desired path to directory, 
+      - output = String value of desired file name (.png)
+    - Returns: Nothing.
 
 
 __Build a topic model per Community and save all variables to respective object properties.__
@@ -165,3 +198,7 @@ nttc.create_hub_csv_files(
     drop_dup_cols=True
 )
 ```
+
+**Plot community similarity indices (Jaccard's Co-efficient)**
+
+<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/plot_comm_pairs.png" />
