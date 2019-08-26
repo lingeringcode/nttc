@@ -61,7 +61,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
     - ```.best_matches_mentions```: Dictionary of per Period with per Period hub top_mentions (users) values as lists
     - ```.best_matches_rters```: Dictionary of per Period with per Period hub top_rters (users) values as lists
     - ```.sorted_filtered_comms```: List of tuples, where each tuple has 1) the tested pair of communities between 2 periods, and 2) their JACC score. Example: ```('1_0x4_0', 0.4286)```
-    - ```.groups_mentions```: A list of sets, where each set are alike mention groups across periods:<pre>[{'1_8', '2_18'},
+    - ```.groups_mentions```: A list of sets, where each set are alike mention groups across periods, based on your given JACC threshold:<pre>[{'1_8', '2_18'},
  {'3_7', '4_2'},
  {'7_11', '8_0'},
  {'10_11', '4_14', '5_14', '6_7', '9_11'},
@@ -69,7 +69,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
  {'10_10', '1_9', '2_3', '3_3', '4_6', '5_2', '6_3', '7_0', '8_2', '9_4'},
  {'10_6', '1_2', '2_4', '3_4', '4_13', '5_6', '6_5', '7_4', '8_7', '9_0'},
  {'10_0', '1_12', '2_6', '3_0', '4_5', '5_7', '6_6', '7_3', '8_9', '9_5'}]</pre>
-    - ```.groups_rters```: A list of sets, where each set are alike mention groups across periods:<pre>[{'1_8', '2_18', '5_14'},
+    - ```.groups_rters```: A list of sets, where each set are alike RTer groups across periods, based on your given JACC threshold:<pre>[{'1_8', '2_18', '5_14'},
  {'10_20', '5_18'},
  {'5_2', '6_3', '7_0'},
  {'5_1', '7_1'},
