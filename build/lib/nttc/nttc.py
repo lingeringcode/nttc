@@ -85,10 +85,13 @@ class communitiesObject:
 
 class communityGroupsObject:
     '''an object class with attributes for various matched-community data and metadata'''
-    def __init__(self, best_matches_mentions=None, sorted_filtered_comms=None, groups=None):
+    def __init__(self, best_matches_mentions=None, best_matches_rters=None, sorted_filtered_mentions=None, sorted_filtered_rters=None, groups_mentions=None, groups_rters=None):
         self.best_matches_mentions = best_matches_mentions
-        self.sorted_filtered_comms = sorted_filtered_comms
-        self.groups = groups
+        self.best_matches_rters = best_matches_rters
+        self.sorted_filtered_mentions = sorted_filtered_mentions
+        self.sorted_filtered_rters = sorted_filtered_rters
+        self.groups_mentions = groups_mentions
+        self.groups_rters = groups_rters
 
 '''
     Initialize communityGroupsObject
@@ -371,19 +374,34 @@ def matching_dict_processor(**kwargs):
         if index > 0 and (period_check in full_dict):
             if (kwargs['df'].values[index-1][1] == key_check) and (kwargs['df'].values[index-1][0] == period_check) and (key_check in full_dict[period_check]):
                 # Update to full_dict[period_check][key_check]
-                full_dict[period_check][key_check].append(kwargs['df'].values[index][2])
+                if kwargs['top_mentions'] == True:
+                    full_dict[period_check][key_check].append(kwargs['df'].iloc[index]['top_mentions'])
+                elif kwargs['top_rters'] == True:
+                    full_dict[period_check][key_check].append(kwargs['df'].iloc[index]['top_rters'])
             elif  (kwargs['df'].values[index-1][1] == key_check) and (key_check not in full_dict[period_check]):
                 # Create new key-value and update to full_dict
-                full_dict[period_check].update( { key_check: [kwargs['df'].values[index][2]] } )
+                if kwargs['top_mentions'] == True:
+                    full_dict[period_check].update( { key_check: [kwargs['df'].iloc[index]['top_mentions']] } )
+                elif kwargs['top_rters'] == True:
+                    full_dict[period_check].update( { key_check: [kwargs['df'].iloc[index]['top_rters']] } )
         elif index > 0 and (period_check not in full_dict):
-            full_dict.update( {period_check: { key_check: [kwargs['df'].values[index][2]] } } )
+            if kwargs['top_mentions'] == True:
+                full_dict.update( {period_check: { key_check: [kwargs['df'].iloc[index]['top_mentions']] } } )
+            elif kwargs['top_rters'] == True:
+                full_dict.update( {period_check: { key_check: [kwargs['df'].iloc[index]['top_rters']] } } )
         elif index == 0:
-            full_dict.update( {period_check: { key_check: [kwargs['df'].values[index][2]] } } )
+            if kwargs['top_mentions'] == True:
+                full_dict.update( {period_check: { key_check: [kwargs['df'].iloc[index]['top_mentions']] } } )
+            elif kwargs['top_rters'] == True:
+                full_dict.update( {period_check: { key_check: [kwargs['df'].iloc[index]['top_rters']] } } )
 
     if kwargs['match_obj'] is None:
         return full_dict
     elif kwargs['match_obj'] is not None:
-        kwargs['match_obj'].best_matches_mentions = full_dict
+        if kwargs['top_mentions'] == True:
+            kwargs['match_obj'].best_matches_mentions = full_dict
+        elif kwargs['top_rters'] == True:
+            kwargs['match_obj'].best_matches_rters = full_dict
         return kwargs['match_obj']
 
 '''
@@ -424,8 +442,12 @@ def match_maker(**kwargs):
     if kwargs['match_obj'] is None:
         return sorted_filtered_comm_scores
     elif kwargs['match_obj'] is not None:
-        kwargs['match_obj'].sorted_filtered_comms = sorted_filtered_comm_scores
-        return kwargs['match_obj']
+        if kwargs['top_mentions'] is True:
+            kwargs['match_obj'].sorted_filtered_mentions = sorted_filtered_comm_scores
+            return kwargs['match_obj']
+        elif kwargs['top_rters'] is True:
+            kwargs['match_obj'].sorted_filtered_rters = sorted_filtered_comm_scores
+            return kwargs['match_obj']
 
 '''
     Plot the community comparisons as a bar chart
@@ -564,17 +586,35 @@ def community_grouper(**kwargs):
     # These 2 patterns find the parts of the keys
     regex1 = r"(\b\w{1,2}_[^x]{1,2})"
     regex2 = r"(([^x]{1,5}\b))"
-    for fcs in kwargs['match_obj'].sorted_filtered_comms:
-        # Parse comms into distinct strings for comparison
-        match1 = re.findall(regex1, fcs[0])
-        match2 = re.findall(regex2, fcs[0])
-        communities_across_periods.append( (match1[0], match2[0][0]) )
-        # If not values exist in groups, update
-        if not groups:
-            groups.update( {str(i): { 'matches': [ match1[0], match2[0][0] ] }} )
-        # Else send matches to group_reader()
-        else:
-            group_reader(groups, match1[0], match2[0][0])
-    fg = final_grouper(all_groups=groups)
-    kwargs['match_obj'].groups = fg
-    return fg
+    if kwargs['top_mentions'] is True:
+        for fcs in kwargs['match_obj'].sorted_filtered_mentions:
+            # Parse comms into distinct strings for comparison
+            match1 = re.findall(regex1, fcs[0])
+            match2 = re.findall(regex2, fcs[0])
+            communities_across_periods.append( (match1[0], match2[0][0]) )
+            # If not values exist in groups, update
+            if not groups:
+                groups.update( {str(i): { 'matches': [ match1[0], match2[0][0] ] }} )
+            # Else send matches to group_reader()
+            else:
+                group_reader(groups, match1[0], match2[0][0])
+        fg = final_grouper(all_groups=groups)
+        kwargs['match_obj'].groups_mentions = fg
+        print('Be sure to double-check the output!')
+        return kwargs['match_obj']
+    elif kwargs['top_rters'] is True:
+        for fcs in kwargs['match_obj'].sorted_filtered_rters:
+            # Parse comms into distinct strings for comparison
+            match1 = re.findall(regex1, fcs[0])
+            match2 = re.findall(regex2, fcs[0])
+            communities_across_periods.append( (match1[0], match2[0][0]) )
+            # If not values exist in groups, update
+            if not groups:
+                groups.update( {str(i): { 'matches': [ match1[0], match2[0][0] ] }} )
+            # Else send matches to group_reader()
+            else:
+                group_reader(groups, match1[0], match2[0][0])
+        fg = final_grouper(all_groups=groups)
+        kwargs['match_obj'].groups_rters = fg
+        print('Be sure to double-check the output!')
+        return kwargs['match_obj']
