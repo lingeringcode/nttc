@@ -600,6 +600,7 @@ def community_grouper(**kwargs):
                 group_reader(groups, match1[0], match2[0][0])
         fg = final_grouper(all_groups=groups)
         kwargs['match_obj'].groups_mentions = fg
+        print('Be sure to double-check the output!')
         return kwargs['match_obj']
     elif kwargs['top_rters'] is True:
         for fcs in kwargs['match_obj'].sorted_filtered_rters:
@@ -615,4 +616,5 @@ def community_grouper(**kwargs):
                 group_reader(groups, match1[0], match2[0][0])
         fg = final_grouper(all_groups=groups)
         kwargs['match_obj'].groups_rters = fg
+        print('Be sure to double-check the output!')
         return kwargs['match_obj']
