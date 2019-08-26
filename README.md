@@ -147,7 +147,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
  {'10_6', '1_2', '2_4', '3_4', '4_13', '5_6', '6_5', '7_4', '8_7', '9_0'},
  {'10_0', '1_12', '2_6', '3_0', '4_5', '5_7', '6_6', '7_3', '8_9', '9_5'}]
     </pre>
-  - **NOTE**: *This algorithm isn't perfect. It needs some refinement, since it may output some overlaps. However, it certainly filters down the potential persistent communities with either top_mentions or top_rters across periods, so it saves you some manual comparative analysis labor.* 
+    - <strong>NOTE</strong>: <em>This algorithm isn't perfect. It needs some refinement, since it may output some overlaps. However, it certainly filters down the potential persistent communities with either top_mentions or top_rters across periods, so it saves you some manual comparative analysis labor.</em>
 * ```group_reader()```: Takes the period_community pairs and appends to dict if intersections occur. However, the returned dict requires furter analysis and processing, due to unknown order and content from the sorted and filtered communities, which is why they are then sent to the final_grouper by community_grouper, after completion here.
     - Args: Accepts the initial group dict, which is cross-referenced by the pair of period_community values extracted via a regex expression.
     - Returns: A dict of oversaturated comparisons, which are sent to final_grouper() for final analysis, reduction, and completion.
