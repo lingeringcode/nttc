@@ -273,5 +273,5 @@ nttc.create_hub_csv_files(
     <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/matching_init_best_matches.png" />
 2. Write a list of tuples (matched community pairs and their scores) with ```match_maker()``` to send to ```community_grouper()```.
     <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/matching_sorted_filtered_comms.png" />
-3. Analyze the intersections and unions of the sorted_filtered_comms' values and output a list of sets, where each set includes alike communities across periods in the corpus.
+3. Analyze the intersections and unions of, in this case, the ```sorted_filtered_mentions```' values and output a list of sets, where each set includes alike communities across periods in the corpus.
     <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/matching_groups.png" />
