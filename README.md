@@ -4,7 +4,7 @@ Distributed under the BSD 3-clause license. See LICENSE.txt or http://opensource
 
 ## Overview
 
-A set of functions that process and create topic models from a sample of community-detected Twitter networks' tweets.
+A set of functions that process and create topic models from a sample of community-detected Twitter networks' tweets. It also analyzes if there are potential persistent community hubs (either/and by top mentioned or top RTers).
 
 It assumes you seek an answer to the following questions:
 1. What communities persist or are ephemeral across periods in the corpora, and when?
