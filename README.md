@@ -19,7 +19,13 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 ## System requirements
 
-* [tsm](https://github.com/dfreelon/TSM) - Current version on Github, not Python Package Index, so you will need to manually download and install from Github (as of 08/23/19).
+* **IMPORTANT**: [tsm](https://github.com/dfreelon/TSM) - Current version on Github, not Python Package Index, so you will need to manually download and install from Github (as of 08/23/19).
+  1. Download the repo from the link above to your computer.
+  2. Open a Terminal and change the directory to ```TSM-master```: ```cd path/to/TSM-master```
+  3. Once the Terminal is in the root of the ```TSM-master``` folder, be sure to first verify that that tsm is not already installed on your computer: ```sudo pip3 uninstall tsm```. 
+     - NOTE: If it is not installed, it will tell you. If it is installed, it will uninstall it. Also, if you have permissions on this folder, there's no need to use ```sudo```.
+  4. Still inside of this root folder, ```TSM-master```, install this version: ```sudo pip3 install .```
+  5. ```pip``` will tell you if the package has successfully been installed or not. If not, research the error.
 * [nltk](https://www.nltk.org/)
 * pandas
 * numpy
@@ -27,9 +33,40 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 * pprint
 * gensim
 * spacy
+* re
 
 ## Installation
 ```pip install nttc```
+
+## Objects
+
+```nttc``` initializes and uses the following objects:
+
+* ```communitiesObject```: Object with properties that help you name them more easily:
+    - tweet_slice: dict of a sample community's tweets
+    - split_docs: split version of sampled tweets
+    - id2word: dict version of split_docs
+    - texts: Listified version of sample
+    - corpus: List of sample terms with frequency counts
+    - readme: If desired, printout readable version
+    - model: Stores the LDA topic model object
+    - perplexity: Computed perplexity score of topic model
+    - coherence: Computed coherence score of topic model
+    - top_rts: Sample of top 10 Rters and RTs for the community
+    - top_mentions: Sample of top 10 people mentioned
+    - full_hub: Combined version of top_rts and top_mentions as a DataFrame
+    
+* ```communityGroupsObject```: Object with properties that analyze community likeness scores and then groups alike communities across periods.
+    - best_matches_nodes: Dictionary of per Period with per Period_Comm hub values as lists
+    - sorted_filtered_comms: List of tuples, where each tuple has 1) the tested pair of communities between 2 periods, and 2) their JACC score. Example: ```('1_0x4_0', 0.4286)```
+    - groups: A list of sets, where each set are alike communities across periods:<pre>[{'1_8', '2_18'},
+ {'3_7', '4_2'},
+ {'7_11', '8_0'},
+ {'10_11', '4_14', '5_14', '6_7', '9_11'},
+ {'1_0', '2_11', '3_5', '4_0', '5_5', '6_12'},
+ {'10_10', '1_9', '2_3', '3_3', '4_6', '5_2', '6_3', '7_0', '8_2', '9_4'},
+ {'10_6', '1_2', '2_4', '3_4', '4_13', '5_6', '6_5', '7_4', '8_7', '9_0'},
+ {'10_0', '1_12', '2_6', '3_0', '4_5', '5_7', '6_6', '7_3', '8_9', '9_5'}]
 
 ## Functions
 
@@ -43,7 +80,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 * ```comm_dict_writer```: Writes per Community tweets into a dictionary.
 * ```split_community_tweets```: Isolates community's tweets, then splits string into list of strings per Tweet preparing them for the topic modeling. Returns as Dataframe of tweets for resepective community.
 * ```clean_split_docs```: Removes punctuation, makes lowercase, removes stopwords, and converts into dataframe for topic modeling.
-* ```tm_maker```: Creates data for TM and builds an LDA TM. 
+* ```tm_maker```: Creates data for TM and builds an LDA TM.
 * ```get_hubs_top_rts```: Appends hubs' top 10 RT'd tweets and usernames to respective period and community object.
   - Args:
     - Dataframe of hub top mentions,
@@ -77,7 +114,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
                ...
                '10': {'10_3': [...] }
             }</pre>
-* ```match_maker```: Takes period dict from matching_dict_processor() and submits to tsm.match_communities() method. Assigns, filters, and sorts the returned values into 
+* ```match_maker```: Takes period dict from matching_dict_processor() and submits to tsm.match_communities() method. Assigns, filters, and sorts the returned values into
     - Args: Dictionary of per Period with per Period_Comm hub values as lists; filter_jacc threshold value (float) between 0 and 1.
     - Returns: List of tuples: period_communityxperiod_community, JACC score<pre>
             [('1_0x4_0', 0.4286),
@@ -87,10 +124,29 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 * ```plot_bar_from_counter```: Plot the community comparisons as a bar chart.
     - Args:
       - ax=None # Resets the chart
-      - counter = List of tuples returned from match_maker(), 
-      - path = String of desired path to directory, 
+      - counter = List of tuples returned from match_maker(),
+      - path = String of desired path to directory,
       - output = String value of desired file name (.png)
     - Returns: Nothing.
+* ```community_grouper()```: Controller function for process to group together communities found to be similar across periods in the corpus. It uses the 1) group_reader() and 2) final_grouper() functions to complete this categorization process.
+    - Args: Accepts the network object (net_obj) with the returned value from nttc.match_maker(), which should be saved as .sorted_filtered_comms property: a list of tuples with sorted and filtered community pairs and their score, but it only uses the community values.
+    - Returns: A list of sets, where each set is a grouped recurrent community: For example, 1_0, where 1 is the period, and 0 is the designated community number.<pre>
+[{'1_8', '2_18'},
+ {'3_7', '4_2'},
+ {'7_11', '8_0'},
+ {'10_11', '4_14', '5_14', '6_7', '9_11'},
+ {'1_0', '2_11', '3_5', '4_0', '5_5', '6_12'},
+ {'10_10', '1_9', '2_3', '3_3', '4_6', '5_2', '6_3', '7_0', '8_2', '9_4'},
+ {'10_6', '1_2', '2_4', '3_4', '4_13', '5_6', '6_5', '7_4', '8_7', '9_0'},
+ {'10_0', '1_12', '2_6', '3_0', '4_5', '5_7', '6_6', '7_3', '8_9', '9_5'}]
+    </pre>
+* ```group_reader()```: Takes the period_community pairs and appends to dict if intersections occur. However, the returned dict requires furter analysis and processing, due to unknown order and content from the sorted and filtered communities, which is why they are then sent to the final_grouper by community_grouper, after completion here.
+    - Args: Accepts the initial group dict, which is cross-referenced by the pair of period_community values extracted via a regex expression.
+    - Returns: A dict of oversaturated comparisons, which are sent to final_grouper() for final analysis, reduction, and completion.
+* ```final_grouper()```: Takes the period_community dictionaries and tests for their intersections. Then, it takes any intersections and joins them with .union and appends them into a localized running list, which will all be accrued in a running master list of that community. From there, each community result will be sorted by their length in descending order.
+    - Args: Accepts the group dict from group_reader().
+    - Returns: A dict of all unique period_community elements (2 or more) found to be similar.
+
 
 
 __Build a topic model per Community and save all variables to respective object properties.__
@@ -119,8 +175,8 @@ dict_all_comms = nttc.comm_dict_writer(comm_list, df_tweets, 'community', 'tweet
 # 4 . Process tweets for each community
 split_dict_all_comms = nttc.split_community_tweets(dict_all_comms, 'tweets')
 # 5. Build the topic model
-tms_full_dict = nttc.tm_maker(random_seed=2018, 
-                                                    split_comms=split_dict_all_comms, 
+tms_full_dict = nttc.tm_maker(random_seed=2018,
+                                                    split_comms=split_dict_all_comms,
                                                     num_topics=5,
                                                     random_state=100,
                                                     update_every=1,
@@ -130,7 +186,7 @@ tms_full_dict = nttc.tm_maker(random_seed=2018,
                                                     per_word_topics=True) #pass any of the following gensim LDATopicModel() object arguments here
 ```
 
-__Sample Output from Above Code__ 
+__Sample Output from Above Code__
 
 ```
 3  Perplexity:  -7.618915328673395
@@ -202,3 +258,12 @@ nttc.create_hub_csv_files(
 **Plot community similarity indices (Jaccard's Co-efficient)**
 
 <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/plot_comm_pairs.png" />
+
+**Analyze and return a list of alike communities across periods**
+
+1. Init a new ```matchingCommunitiesObject``` and write a dict of users with ```matching_dict_processor()``` to send to ```match_maker()```.
+    <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/matching_init_best_matches.png" />
+2. Write a list of tuples (matched community pairs and their scores) with ```match_maker()``` to send to ```community_grouper()```.
+    <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/matching_sorted_filtered_comms.png" />
+3. Analyze the intersections and unions of the sorted_filtered_comms' values and output a list of sets, where each set includes alike communities across periods in the corpus.
+    <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/matching_groups.png" />
