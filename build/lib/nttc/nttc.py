@@ -32,6 +32,7 @@ import re
 import emoji
 import string
 import tsm
+import networkX as nx
 
 # Stopwords
 # Import stopwords with nltk.
@@ -64,6 +65,11 @@ import numpy as np
 '''
     See README.md for an overview aand comments for extended explanation.
 '''
+class periodObject:
+    '''an object class with attributes that store per Community subgraph properties'''
+    def __init__(self, comm_nums=None, subgraphs_dict=None):
+        self.comm_nums = comm_nums
+        self.subgraphs_dict = subgraphs_dict
 
 class communitiesObject:
     '''an object class with attributes for various matched-community data and metadata'''
@@ -93,6 +99,18 @@ class communityGroupsObject:
         self.groups_mentions = groups_mentions
         self.groups_rters = groups_rters
 
+##################################################################
+
+## General Functions
+
+##################################################################
+
+'''
+    Initialize periodObject
+'''
+def initializePO():
+    return periodObject()
+
 '''
     Initialize communityGroupsObject
 '''
@@ -118,6 +136,171 @@ def write_csv(dal, sys_path, __file_path__):
                                 encoding='utf-8',
                                 index=False)
 
+##################################################################
+
+## periodObject Functions
+
+##################################################################
+
+'''
+    Filters community column values into List
+    Args: 
+        - period_obj= Instantiated periodObject()
+        - dft_comm_col= Dataframe column of community values of nodes
+    Returns: A List of unique community numbers (Strings) within the period
+        - Either the periodObject() with the new property comm_nums, or
+        - List of comm numbers as Strings
+'''
+def get_comm_nums(**kwargs):
+    # Get community numbers
+    c_list = []
+    for c in kwargs['dft_comm_col'].values.tolist():
+        if not c_list:
+            c_list.append(c)
+        elif c not in c_list:
+            c_list.append(c)
+    
+    if kwargs['period_obj']:
+        kwargs['period_obj'].comm_nums = c_list
+        return kwargs['period_obj']
+    elif not kwargs['period_obj']:
+        return c_list
+
+'''
+    comm_sender && write_community_list functions create a dict of nodes 
+    and edges to be saved as a property, .subgraphs_dict, of a periodObject.
+
+    1. Creates a List of nodes per Community
+    2. Creates a List of edges per Community
+    3. Appends dict of these lists to comprehensive dict for the period.
+    4. Appends this period dict to the period)bject property: .subgraphs_dict
+    5. Returns the object.
+
+    Args: 
+        - period_obj= Instantiated periodObject()
+        - df_nodes= Dataframe of community nodes with a column named 'community'
+        - df_edges= Dataframe of community edges
+    Returns:
+        - periodObject() with the new property .subgraphs_dict
+'''
+def comm_sender(**kwargs):
+    new_comm_dict = {}
+    for a in kwargs['period_obj']['all_comm_nums']:
+        cl = []
+        cl = [a]
+        print(cl)
+        comm_nodes = pd.DataFrame()
+        comm_nodes = kwargs['df_nodes'][kwargs['df_nodes'].community.isin(cl)]
+        parsed_comm = write_community_list(comm_nodes, kwargs['df_edges'], a)
+        new_comm_dict.update(parsed_comm)
+    print(len(new_comm_dict))
+    kwargs['period_obj'].subgraphs_dict = new_comm_dict
+    return kwargs['period_obj']
+
+def write_community_list(cn, df_edges, a):
+    node_list = []
+    edge_list = []
+    
+    for n in cn.values.tolist():
+        node_list.append(n[0])
+    
+    print('Sample NODES: ', node_list[:5])
+    
+    for e in df_edges.values.tolist():
+        # ONLY Comm SRC-->TARGETS
+        for c in node_list:
+            if e[0] == c:
+                for cc in node_list:
+                    if e[1] == cc:
+                        edge_list.append( (e[0], e[1]) )
+    
+    print('Sample EDGES: ', edge_list[:5])
+    dict_comm = {}
+    dict_comm.update({a: { 'nodes': node_list, 'edges': edge_list }})
+    return dict_comm
+
+'''
+    Function to more quickly generate new networkX graphs
+    Args: 
+        - Nodes: 
+        - Newly instantiated networkX graph object
+        - Edges: 
+    Returns: networkX graph object with nodes and edges
+'''
+def add_nodes_edges(nodes, g, edges):
+    for n in nodes:
+        g.add_node(n)
+    for source, target in edges:
+        g.add_edge(source, target)
+    return g
+
+'''
+    Draws subgraphs with networkX module
+    Args:
+        plt.figure():
+            - figsize= Tuple of (width,height) Integers, e.g., (50,35) for matplot figure
+              argument
+        nx.draw():
+            - hydrated_graph= networkX graph object with full list of nodes
+              and edges
+            - pos_custom= full list of node positions for all nodes
+            - with_labels= Boolean for labels option
+            - font_weight= value for networkX option (see spec)
+            - node_size= value for networkX option (see spec)
+            - width: value for networkX option for edge width
+        nx.draw_networkx_nodes() and nx.draw_networkx_edges():
+            - period_dict= 
+            - period_list= 
+            - node_size= #Integer
+            - edge_color= #Hex color code
+            - edge_width= #Integer
+            - edge_alpha= #Float b/t 0 and 1
+            - axis= #string 'on' or 'off' value
+            - graph_title= #String of desired title for graph
+            - font_dict= #Dict with font options via matplot spec
+            - output_path= #String of desired path and filename to save the image
+'''
+def draw_subgraphs(**kwargs):
+    plt.figure(figsize=kwargs['figsize'])
+    nx.draw(kwargs['hydrated_graph'], kwargs['pos_custom'], with_labels=kwargs['with_labels'],
+            font_weight=kwargs['font_weight'], node_size=kwargs['node_size'], width=kwargs['width'])
+
+    # For each community list, draw the nodes and edges 
+    # with specifying attributes
+    for period in kwargs['period_dict']:
+        for p in kwargs['period_list']:
+            if period == p: # p is period number
+                node_list = kwargs['period_dict'][period]['nodes']
+                edge_list = kwargs['period_dict'][period]['edges']
+                # Draw nodes
+                nx.draw_networkx_nodes(
+                    kwargs['hydrated_graph'],
+                    kwargs['pos_custom'],
+                    nodelist=node_list,
+                    #update existing dict, before calling this func
+                    node_color=kwargs['period_dict'][period]['node_color'],
+                    node_size=kwargs['node_size'])
+                # Draw edges
+                nx.draw_networkx_edges(
+                    kwargs['hydrated_graph'],
+                    kwargs['pos_custom'],
+                    edgelist=edge_list,
+                    #update existing dict, before calling this func
+                    edge_color=kwargs['period_dict'][period]['edge_color'],
+                    width=kwargs['edge_width'],
+                    alpha=kwargs['edge_alpha'])
+
+    plt.axis(kwargs['axis'])
+    plt.title(kwargs['graph_title'], fontdict=kwargs['font_dict'])
+    plt.savefig(kwargs['output_path']) # save as image
+    plt.show()
+
+##################################################################
+
+## communitiesObject Functions
+
+##################################################################
+
 '''
     Writes all objects and their respective source/target information
     to a CSV of "hubs"
@@ -133,20 +316,6 @@ def create_hub_csv_files(**kwargs):
     else:
         write_csv(df_merged_drop_dup, kwargs['sys_path'], kwargs['output_file'])
     print('File written to system.')
-
-'''
-    Filters community column values into List
-'''
-def get_comm_nums(dft):
-    # Get community numbers
-    c_list = []
-    for c in dft['community'].values.tolist():
-        if not c_list:
-            c_list.append(c)
-        elif c not in c_list:
-            c_list.append(c)
-
-    return c_list
 
 '''
     Slice the full set to community and their respective tweets
@@ -346,6 +515,11 @@ def merge_rts_mentions(fo):
         fo[f].full_hub = df_merged.reset_index(drop=True)
     return fo
 
+##################################################################
+
+## communityGroupsObject Functions
+
+##################################################################
 '''
     Processes input dataframe of network community hubs for use in the tsm.match_communities() function
         -- Args: A dataframe with Period, Period_Community (1_0), and top mentioned (highest in-degree) users
@@ -583,7 +757,8 @@ def community_grouper(**kwargs):
     groups = {}
     communities_across_periods = []
     i = 0
-    # These 2 patterns find the parts of the keys
+    # These 2 patterns find the parts of the keys: 
+    # Example: 10_6x3_20 becomes 10_6 and 3_20, respectively
     regex1 = r"(\b\w{1,2}_[^x]{1,2})"
     regex2 = r"(([^x]{1,5}\b))"
     if kwargs['top_mentions'] is True:

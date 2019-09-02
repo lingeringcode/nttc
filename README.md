@@ -28,6 +28,8 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
   4. Still inside of this root folder, ```TSM-master```, install this version: ```sudo pip3 install .```
   5. ```pip``` will tell you if the package has successfully been installed or not. If not, research the error.
 * [nltk](https://www.nltk.org/)
+* networkx
+* matplot
 * pandas
 * numpy
 * emoji
@@ -42,6 +44,10 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 ## Objects
 
 ```nttc``` initializes and uses the following objects:
+
+* ```periodObject```: Object with properties that store per Community subgraph properties. Object properties as follows:
+    - ```.comm_nums```: List of retrieved community numbers from the imported nodes data
+    - ```.subgraphs_dict```: Dictionary of period's community nodes and edges data.
 
 * ```communitiesObject```: Object with properties that generate topic model and also help you name them more easily. Object properties are as follows:
     - ```.tweet_slice```: dict of a sample community's tweets
@@ -75,12 +81,31 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
  {'5_1', '7_1'},
  {'10_12', '2_3', '3_13', '6_8', '7_5', '8_4', '9_1'}]</pre>
 
-## Functions
+## General Functions
 
 ```nttc``` contains the following functions:
 
+* ```initializePO```: Initializes a periodObject().
+* ```initializeCGO```: Initializes a communityGroupsObject().
 * ```get_csv```: Loads CSV data as a pandas DataFrame.
+* ```batch_csv```: Merge a folder of CSV files into either one allPeriodsObject that stores a dict of all network nodes and edges per Period, or returns only the aforementioned dict, if no object is passed as an arg.
 * ```write_csv```: Writes DataFrame as a CSV file.
+  
+## periodObject Functions
+
+* ```get_comm_nums```: Filters unique community column values into List
+* ```comm_sender``` and ```write_community_list```: These 2 functions create a dict of nodes and edges to be saved as a property, .subgraphs_dict, of a periodObject. It does so by:
+  1. Creates a List of nodes per Community
+  2. Creates a List of edges per Community
+  3. Appends dict of these lists to comprehensive dict for the period.
+  4. Appends this period dict to the period)bject property: .subgraphs_dict
+  5. Returns the object.
+* ```add_comm_nodes_edges```: Function to more quickly generate new networkX graph of specific comms in a period.
+* ```add_all_nodes_edges```: Function to more quickly generate new networkX graph of all comms in a period.
+* ```draw_subgraphs```: Draws subgraphs with networkX module, but can do so with multiple communities across periods.
+
+## communitiesObject Functions
+
 * ```create_hub_csv_files```: Writes all of the objects' top rt'd/mentions information as a CSV of "hubs"
 * ```get_comm_nums```: Filters Dataframe column community values into a List.
 * ```get_all_comms```: Slice the full set to community and their respective tweets. Arguments: Full dataframe, strings of column names for community and tweets.
@@ -103,6 +128,9 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
     - String of column name for the community number
   - Returns: Dict Object with new .top_mentions per Object
 * ```merge_rts_mentions```: Merges hubs' sources and mentions data as a full list per Community.
+
+## communityGroupsObject Functions
+
 * ```matching_dict_processor```: Processes input dataframe of network community hubs for use in the tsm.match_communities() function.
     - Args: A dataframe with Period, Period_Community (1_0), and top mentioned (highest in-degree) users
     - Returns: Dictionary of per Period with per Period_Comm hub values as lists:<pre>
@@ -275,3 +303,25 @@ nttc.create_hub_csv_files(
     <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/matching_sorted_filtered_comms.png" />
 3. Analyze the intersections and unions of, in this case, the ```sorted_filtered_mentions```' values and output a list of sets, where each set includes alike communities across periods in the corpus.
     <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/matching_groups.png" />
+
+**Process and visualize alike communities across periods**
+
+1. Init a new ```allPeriodsObject``` and merge all network node and edge data from each period into one dict with ```batch_csv()```.
+    <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/all_periods_import.png" />
+2. Init new periodObj() as needed with ```initializePO()```, retrieve the unique comunity numbers with ```get_comm_nums()```, and slice up each period per Community into the periodObject with ```comm_sender()```. Repeat per Period.
+    <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/all_periods_slice_comms_into_per_objs.png" />
+3. If desired, and as needed, access each periods network data for use.
+    <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/all_periods_access.png" />
+4. Visualize each alike community network graph with ```draw_subgraphs()```, a networkx helper function, as desired.
+    <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/all_periods_draw_subgraphs_code.png" />
+    <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/all_periods_draw_subgraphs_output.png" />
+
+## Distribution update terminal commands
+
+<pre>
+# Create new distribution of code for archiving
+sudo python3 setup.py sdist bdist_wheel
+
+# Distribute to Python Package Index
+python3 -m twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+</pre>
