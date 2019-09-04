@@ -218,6 +218,86 @@ def write_csv(dal, sys_path, __file_path__):
 
 ##################################################################
 
+## Infomap Data-Processing Functions
+
+##################################################################
+'''
+    write_net_txt(): Outputs .txt file with edges in a .net format:
+        source target [optional weight]
+        1 2
+        2 4
+        2 8
+        5 4
+        ...
+'''
+def write_net_txt(**kwargs):
+    with open(join(kwargs['net_path'], kwargs['net_output']), "a") as f:
+        for e in ['keyed_edges']:
+            if e[3]:
+                print(e[0], e[1], e[3], file=f)
+            else:
+                print(e[0], e[1], file=f)
+
+'''
+    index_unique_users(): Take list of unique users and append IDs
+'''
+def index_unique_users(ul):
+    index = 1
+    new_un_list = []
+    for un in ul:
+        new_un_list.append( (index, un) )
+        index = index + 1
+    return new_un_list
+
+'''
+    listify_unique_users(): Take edge list and create a list of 
+        unique users
+'''
+def listify_unique_users(**kwargs):
+    user_list = []
+    for source, target in kwargs['df_edges']:
+        if (source not in user_list and target not in user_list):
+            user_list.append( source )
+            user_list.append( target)
+        elif (source in user_list and target not in user_list):
+            user_list.append( target)
+        elif (source not in user_list and target in user_list):
+            user_list.append( source)
+    indexed_user_list = index_unique_users(user_list)
+    return indexed_user_list
+
+'''
+    target_part_lookup(): Lookup target in unique list and return
+    to netify_edges()
+'''
+def target_part_lookup(nu_list, target):
+    for n in nu_list:
+        if n[1] == target:
+            return n[0] # number
+
+'''
+    netify_edges(); Accepts list of lists (edges) and replaces the
+        usernames with their unique IDs. This prepares output for the
+        infomap code system.
+'''
+def netify_edges(**kwargs):
+    position = 0
+    new_edges_list = []
+    for source in kwargs['list_edges']:
+        new_edge = None
+        for un in kwargs['unique_list']:
+            if source[0] == un[1]:
+                src = un[0]
+                tar = target_part_lookup(
+                    kwargs['unique_list'],
+                    kwargs['list_edges'][position][1]) #send target for retrieval
+                new_edge = [src, tar]
+        new_edges_list.append(new_edge)
+        position = position + 1
+    return new_edges_list
+
+##################################################################
+
 ## periodObject Functions
 
 ##################################################################

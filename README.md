@@ -1,4 +1,4 @@
-# NTTC (Name That Twitter Community!) A Tweets Topic Modeling Processor for Python 3
+# NTTC (Name That Twitter Community!): Process and analyze community-detected data
 by Chris Lindgren <chris.a.lindgren@gmail.com>
 Distributed under the BSD 3-clause license. See LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause for details.
 
@@ -83,14 +83,30 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 ## General Functions
 
-```nttc``` contains the following functions:
+```nttc``` contains the following general functions:
 
 * ```initializePO```: Initializes a periodObject().
 * ```initializeCGO```: Initializes a communityGroupsObject().
 * ```get_csv```: Loads CSV data as a pandas DataFrame.
 * ```batch_csv```: Merge a folder of CSV files into either one allPeriodsObject that stores a dict of all network nodes and edges per Period, or returns only the aforementioned dict, if no object is passed as an arg.
 * ```write_csv```: Writes DataFrame as a CSV file.
-  
+
+## [Infomap](https://www.mapequation.org/) Data-Processing Functions
+
+```nttc``` contains the following functions to process data into a usable format for the [Infomap](https://www.mapequation.org/) network analysis system. In short, it takes an edge list with usernames (username1, username2), and it translates it into the necessary unique IDs as integers.
+
+* ```listify_unique_users```: Take edge list and create a list of unique users
+* ```index_unique_users```: Take list of unique users and append IDs
+* ```target_part_lookup```: Lookup target in unique list and return to netify_edges()
+* ```netify_edges```: Accepts list of lists (edges) and replaces the usernames with their unique IDs. This prepares output for the infomap code system.
+* ```write_net_txt```: Outputs .txt file with edges in a .net format for the [Infomap](https://www.mapequation.org/) system:
+  <pre>source target [optional weight]
+  1 2
+  2 4
+  2 8
+  5 4
+  ...</pre>
+
 ## periodObject Functions
 
 * ```get_comm_nums```: Filters unique community column values into List
