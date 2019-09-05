@@ -232,8 +232,8 @@ def write_csv(dal, sys_path, __file_path__):
 '''
 def write_net_txt(**kwargs):
     with open(join(kwargs['net_path'], kwargs['net_output']), "a") as f:
-        for e in ['keyed_edges']:
-            if e[3]:
+        for e in kwargs['keyed_edges']:
+            if len(e) == 3:
                 print(e[0], e[1], e[3], file=f)
             else:
                 print(e[0], e[1], file=f)
@@ -263,8 +263,7 @@ def listify_unique_users(**kwargs):
             user_list.append( target)
         elif (source not in user_list and target in user_list):
             user_list.append( source)
-    indexed_user_list = index_unique_users(user_list)
-    return indexed_user_list
+    return user_list
 
 '''
     target_part_lookup(): Lookup target in unique list and return
