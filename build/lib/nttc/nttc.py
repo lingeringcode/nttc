@@ -256,7 +256,13 @@ def index_unique_users(ul):
 '''
 def listify_unique_users(**kwargs):
     user_list = []
+    status_counter = 0
+    index = 0
+    print('Starting the listifying process. This may take some time, depending upong the file size.')
     for source, target in kwargs['df_edges']:
+        if status_counter == 50000:
+            print(index, 'entries processed.')
+            status_counter = 0
         if (source not in user_list and target not in user_list):
             user_list.append(source)
             user_list.append(target)
@@ -264,6 +270,9 @@ def listify_unique_users(**kwargs):
             user_list.append(target)
         elif (source not in user_list and target in user_list):
             user_list.append(source)
+        index = index + 1
+        status_counter = status_counter + 1
+    print('Listifying complete!')
     return user_list
 
 '''
@@ -282,10 +291,15 @@ def target_part_lookup(nu_list, target):
 '''
 def netify_edges(**kwargs):
     position = 0
+    status_counter = 0
     new_edges_list = []
+    print('Started revising edges to net format. This may take some time, depending upon the file size.')
     for source in kwargs['list_edges']:
         new_edge = None
         for un in kwargs['unique_list']:
+            if status_counter == 50000:
+                print(position, 'entries processed.')
+                status_counter = 0
             if source[0] == un[1]:
                 src = un[0]
                 tar = target_part_lookup(
@@ -294,6 +308,8 @@ def netify_edges(**kwargs):
                 new_edge = [src, tar]
         new_edges_list.append(new_edge)
         position = position + 1
+        status_counter = status_counter + 1
+    print('Finished revising the edge list.')
     return new_edges_list
 
 ##################################################################
