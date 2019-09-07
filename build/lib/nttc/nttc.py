@@ -215,6 +215,7 @@ def write_csv(dal, sys_path, __file_path__):
                                 sep=',',
                                 encoding='utf-8',
                                 index=False)
+    print(__file_path__, ' written to ', sys_path)
 
 ##################################################################
 
@@ -232,8 +233,8 @@ def write_csv(dal, sys_path, __file_path__):
 '''
 def write_net_txt(**kwargs):
     with open(join(kwargs['net_path'], kwargs['net_output']), "a") as f:
-        for e in ['keyed_edges']:
-            if e[3]:
+        for e in kwargs['keyed_edges']:
+            if len(e) == 3:
                 print(e[0], e[1], e[3], file=f)
             else:
                 print(e[0], e[1], file=f)
@@ -257,14 +258,13 @@ def listify_unique_users(**kwargs):
     user_list = []
     for source, target in kwargs['df_edges']:
         if (source not in user_list and target not in user_list):
-            user_list.append( source )
-            user_list.append( target)
+            user_list.append(source)
+            user_list.append(target)
         elif (source in user_list and target not in user_list):
-            user_list.append( target)
+            user_list.append(target)
         elif (source not in user_list and target in user_list):
-            user_list.append( source)
-    indexed_user_list = index_unique_users(user_list)
-    return indexed_user_list
+            user_list.append(source)
+    return user_list
 
 '''
     target_part_lookup(): Lookup target in unique list and return
@@ -273,7 +273,7 @@ def listify_unique_users(**kwargs):
 def target_part_lookup(nu_list, target):
     for n in nu_list:
         if n[1] == target:
-            return n[0] # number
+            return n[0] #Return target
 
 '''
     netify_edges(); Accepts list of lists (edges) and replaces the
@@ -304,12 +304,12 @@ def netify_edges(**kwargs):
 
 '''
     get_comm_nums(): Filters community column values into List
-    Args: 
-        - period_obj= Instantiated periodObject()
-        - dft_comm_col= Dataframe column of community values of nodes
-    Returns: A List of unique community numbers (Strings) within the period
-        - Either the periodObject() with the new property comm_nums, or
-        - List of comm numbers as Strings
+        Args: 
+            - period_obj= Instantiated periodObject()
+            - dft_comm_col= Dataframe column of community values of nodes
+        Returns: A List of unique community numbers (Strings) within the period
+            - Either the periodObject() with the new property comm_nums, or
+            - List of comm numbers as Strings
 '''
 def get_comm_nums(**kwargs):
     # Get community numbers
@@ -526,7 +526,6 @@ def comm_dict_writer(comm_list, dft, col_community, col_tweets):
 
     return dict_c
 
-
 '''
     Isolates community's tweets, then splits string into list of strings per Tweet
         preparing them for the topic modeling
@@ -678,7 +677,7 @@ def get_hubs_top_rts(**kwargs):
             String of column name for period,
             String of period number,
             String of column name for the community number
-        -- Returns: Dict Object with new .targets per Object
+        -- Returns: Dict Object with new .top_mentions per Object
 '''
 def get_hubs_top_mentions(**kwargs):
     for f in kwargs['dict_obj']:
@@ -709,16 +708,9 @@ def merge_rts_mentions(fo):
     Processes input dataframe of network community hubs for use in the tsm.match_communities() function
         -- Args: A dataframe with Period, Period_Community (1_0), and top mentioned (highest in-degree) users
         -- Returns: Dictionary of per Period with per Period_Comm hub values as lists:
-            {'1': {'1_0': ['nancypelosi',
-               'chuckschumer',
-               'senfeinstein',
-               'kamalaharris',
-               'barackobama',
-               'senwarren',
-               'hillaryclinton',
-               'senkamalaharris',
-               'repadamschiff',
-               'corybooker'],
+            {'1': {'1_0': ['nancypelosi','chuckschumer','senfeinstein',
+                'kamalaharris','barackobama','senwarren','hillaryclinton',
+                'senkamalaharris','repadamschiff','corybooker'],
                ...
                },
                ...

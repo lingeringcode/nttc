@@ -215,6 +215,7 @@ def write_csv(dal, sys_path, __file_path__):
                                 sep=',',
                                 encoding='utf-8',
                                 index=False)
+    print(__file_path__, ' written to ', sys_path)
 
 ##################################################################
 
@@ -255,14 +256,23 @@ def index_unique_users(ul):
 '''
 def listify_unique_users(**kwargs):
     user_list = []
+    status_counter = 0
+    index = 0
+    print('Starting the listifying process. This may take some time, depending upong the file size.')
     for source, target in kwargs['df_edges']:
+        if status_counter == 50000:
+            print(index, 'entries processed.')
+            status_counter = 0
         if (source not in user_list and target not in user_list):
-            user_list.append( source )
-            user_list.append( target)
+            user_list.append(source)
+            user_list.append(target)
         elif (source in user_list and target not in user_list):
-            user_list.append( target)
+            user_list.append(target)
         elif (source not in user_list and target in user_list):
-            user_list.append( source)
+            user_list.append(source)
+        index = index + 1
+        status_counter = status_counter + 1
+    print('Listifying complete!')
     return user_list
 
 '''
@@ -272,7 +282,7 @@ def listify_unique_users(**kwargs):
 def target_part_lookup(nu_list, target):
     for n in nu_list:
         if n[1] == target:
-            return n[0] # number
+            return n[0] #Return target
 
 '''
     netify_edges(); Accepts list of lists (edges) and replaces the
@@ -281,10 +291,15 @@ def target_part_lookup(nu_list, target):
 '''
 def netify_edges(**kwargs):
     position = 0
+    status_counter = 0
     new_edges_list = []
+    print('Started revising edges to net format. This may take some time, depending upon the file size.')
     for source in kwargs['list_edges']:
         new_edge = None
         for un in kwargs['unique_list']:
+            if status_counter == 50000:
+                print(position, 'entries processed.')
+                status_counter = 0
             if source[0] == un[1]:
                 src = un[0]
                 tar = target_part_lookup(
@@ -293,6 +308,8 @@ def netify_edges(**kwargs):
                 new_edge = [src, tar]
         new_edges_list.append(new_edge)
         position = position + 1
+        status_counter = status_counter + 1
+    print('Finished revising the edge list.')
     return new_edges_list
 
 ##################################################################
@@ -303,12 +320,12 @@ def netify_edges(**kwargs):
 
 '''
     get_comm_nums(): Filters community column values into List
-    Args: 
-        - period_obj= Instantiated periodObject()
-        - dft_comm_col= Dataframe column of community values of nodes
-    Returns: A List of unique community numbers (Strings) within the period
-        - Either the periodObject() with the new property comm_nums, or
-        - List of comm numbers as Strings
+        Args: 
+            - period_obj= Instantiated periodObject()
+            - dft_comm_col= Dataframe column of community values of nodes
+        Returns: A List of unique community numbers (Strings) within the period
+            - Either the periodObject() with the new property comm_nums, or
+            - List of comm numbers as Strings
 '''
 def get_comm_nums(**kwargs):
     # Get community numbers
@@ -525,7 +542,6 @@ def comm_dict_writer(comm_list, dft, col_community, col_tweets):
 
     return dict_c
 
-
 '''
     Isolates community's tweets, then splits string into list of strings per Tweet
         preparing them for the topic modeling
@@ -677,7 +693,7 @@ def get_hubs_top_rts(**kwargs):
             String of column name for period,
             String of period number,
             String of column name for the community number
-        -- Returns: Dict Object with new .targets per Object
+        -- Returns: Dict Object with new .top_mentions per Object
 '''
 def get_hubs_top_mentions(**kwargs):
     for f in kwargs['dict_obj']:
@@ -708,16 +724,9 @@ def merge_rts_mentions(fo):
     Processes input dataframe of network community hubs for use in the tsm.match_communities() function
         -- Args: A dataframe with Period, Period_Community (1_0), and top mentioned (highest in-degree) users
         -- Returns: Dictionary of per Period with per Period_Comm hub values as lists:
-            {'1': {'1_0': ['nancypelosi',
-               'chuckschumer',
-               'senfeinstein',
-               'kamalaharris',
-               'barackobama',
-               'senwarren',
-               'hillaryclinton',
-               'senkamalaharris',
-               'repadamschiff',
-               'corybooker'],
+            {'1': {'1_0': ['nancypelosi','chuckschumer','senfeinstein',
+                'kamalaharris','barackobama','senwarren','hillaryclinton',
+                'senkamalaharris','repadamschiff','corybooker'],
                ...
                },
                ...
