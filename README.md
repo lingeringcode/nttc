@@ -96,6 +96,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 ```nttc``` contains the following functions to process data into a usable format for the [Infomap](https://www.mapequation.org/) network analysis system. In short, it takes an edge list with usernames (username1, username2), and it translates it into the necessary unique IDs as integers.
 
 * ```listify_unique_users```: Take edge list and create a list of unique users
+* ```check_protected_dataype_names```: Verify that edge names don't conflict with Python protected datatypes. If they do, append 2 underscores to its end and log it.
 * ```index_unique_users```: Take list of unique users and append IDs
 * ```target_part_lookup```: Lookup target in unique list and return to netify_edges()
 * ```netify_edges```: Accepts list of lists (edges) and replaces the usernames with their unique IDs. This prepares output for the infomap code system.

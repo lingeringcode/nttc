@@ -251,6 +251,24 @@ def index_unique_users(ul):
     return new_un_list
 
 '''
+  check_protected_dataype_names: Verify that edge names don't conflict with Python protected datatypes.
+      If they do, append 2 underscores to its end and log it.
+'''
+def check_protected_dataype_names(le):
+    index = 0
+    for e in le:
+        if (str(e[0]) == 'nan' or str(e[0]) == 'None' or str(e[0]) == 'undefined' or str(e[0]) == 'null'):
+            print('Source with encoded name found: ', e[0], ' at index ', index)
+            e[0] = str(e[0])+'__'
+            print('Renamed edge as ', e)
+        elif (str(e[1]) == 'nan' or str(e[1]) == 'None' or str(e[1]) == 'undefined' or str(e[0]) == 'null'):
+            print('Target with encoded name found: ', e[1], ' at index ', index)
+            e[1] = str(e[1])+'__'
+            print('Renamed edge as ', e)
+        index=index+1
+    return le
+
+'''
     listify_unique_users(): Take edge list and create a list of 
         unique users
 '''
@@ -576,7 +594,6 @@ def split_community_tweets(dict_comm_tweets, col_name):
 '''
     Removes punctuation, makes lowercase, removes stopwords, and converts into dataframe for topic modeling
 '''
-
 def clean_split_docs(pcpd):
     nltk.download('stopwords')
     stop = stopwords.words('english')
