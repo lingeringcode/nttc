@@ -223,21 +223,71 @@ def write_csv(dal, sys_path, __file_path__):
 
 ##################################################################
 '''
-    write_net_txt(): Outputs .txt file with edges in a .net format:
+    vert_lookup: Helper function for write_net_dict. It finds the
+        matching username and returns the period_based ID.
+'''
+def vert_lookup(a, u_list):
+    for u in u_list:
+        if a == u[2]:
+            return u[0]    
+
+'''
+    write_net_dict: Writes s Dict of vertices (nodes) and
+        arcs (edges) in the Pajek file format (.net).
+'''
+def write_net_dict(**kwargs):
+    index=1
+    verts = []
+    arcs = []
+    for v in kwargs['vertices']:
+        user = '\"'+v[1]+'\"'
+        if len(v) == 3:
+            verts.append([index, user, v[3]])
+        else:
+            verts.append([index, user, v[1]])
+        index = index + 1
+
+    for e in kwargs['keyed_edges']:
+        if len(e) == 3:
+            print(e[0], e[1], e[3])
+        else:
+            source = vert_lookup(e[0], verts)
+            target = vert_lookup(e[1], verts)
+            arcs.append([source,target])
+    p_dict = {
+        'vertices': verts,
+        'arcs': arcs
+    }
+    return p_dict
+
+'''
+    write_net_txt(): Outputs .net file Pajek format:
+        node_id nodes [optional weight]
+        1 "user1"
+        2 "user2"
+        ...
         source target [optional weight]
         1 2
-        2 4
-        2 8
-        5 4
+        2 1
         ...
 '''
 def write_net_txt(**kwargs):
     with open(join(kwargs['net_path'], kwargs['net_output']), "a") as f:
+        print( '*Vertices', len(kwargs['vertices']), file=f )
+        for v in kwargs['vertices']:
+            user = '\"'+v[1]+'\"'
+            if len(v) == 4:
+                print(v[0], user, v[3], file=f)
+            else:
+                print(v[0], v[1], file=f)
+        
+        print( '*Arcs', len(kwargs['keyed_edges']), file=f )
         for e in kwargs['keyed_edges']:
             if len(e) == 3:
                 print(e[0], e[1], e[3], file=f)
             else:
                 print(e[0], e[1], file=f)
+    print('File', kwargs['net_output'], 'written to', kwargs['net_path'])
 
 '''
     index_unique_users(): Take list of unique users and append IDs
@@ -251,8 +301,25 @@ def index_unique_users(ul):
     return new_un_list
 
 '''
-    listify_unique_users(): Take edge list and create a list of 
-        unique users
+  check_protected_dataype_names: Verify that edge names don't conflict with Python protected datatypes.
+      If they do, append 2 underscores to its end and log it.
+'''
+def check_protected_dataype_names(le):
+    index = 0
+    for e in le:
+        if (str(e[0]) == 'nan' or str(e[0]) == 'None' or str(e[0]) == 'undefined' or str(e[0]) == 'null'):
+            print('Source with encoded name found: ', e[0], ' at index ', index)
+            e[0] = str(e[0])+'__'
+            print('Renamed edge as ', e)
+        elif (str(e[1]) == 'nan' or str(e[1]) == 'None' or str(e[1]) == 'undefined' or str(e[0]) == 'null'):
+            print('Target with encoded name found: ', e[1], ' at index ', index)
+            e[1] = str(e[1])+'__'
+            print('Renamed edge as ', e)
+        index=index+1
+    return le
+
+'''
+    listify_unique_users(): Take edge list and create a list of unique users
 '''
 def listify_unique_users(**kwargs):
     user_list = []
@@ -576,7 +643,6 @@ def split_community_tweets(dict_comm_tweets, col_name):
 '''
     Removes punctuation, makes lowercase, removes stopwords, and converts into dataframe for topic modeling
 '''
-
 def clean_split_docs(pcpd):
     nltk.download('stopwords')
     stop = stopwords.words('english')

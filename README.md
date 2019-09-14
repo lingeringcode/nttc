@@ -93,12 +93,17 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 ## [Infomap](https://www.mapequation.org/) Data-Processing Functions
 
-```nttc``` contains the following functions to process data into a usable format for the [Infomap](https://www.mapequation.org/) network analysis system. In short, it takes an edge list with usernames (username1, username2), and it translates it into the necessary unique IDs as integers.
+```nttc``` contains the following functions to process data into a usable format for the [Infomap](https://www.mapequation.org/) network analysis system. In short, it takes an edge list with usernames (username1, username2), and it translates it into the necessary Pajek file format (.net).
 
 * ```listify_unique_users```: Take edge list and create a list of unique users
 * ```check_protected_dataype_names```: Verify that edge names don't conflict with Python protected datatypes. If they do, append 2 underscores to its end and log it.
 * ```index_unique_users```: Take list of unique users and append IDs
 * ```target_part_lookup```: Lookup target in unique list and return to netify_edges()
+* ```write_net_dict```: Writes s Dict of vertices (nodes) and arcs (edges) in preperation for formatting it into the Pajek file format (.net). It returns a dictionary akin to the following:<pre>p_dict = {
+        'vertices': verts, # A List of vertices (nodes) with an ID [1, user1]
+        'arcs': arcs # A list of arcs (edges) [source, target]
+    }</pre>
+* ```vert_lookup```: Helper function for ```write_net_dict```. It finds the matching username and returns the period_based ID.
 * ```netify_edges```: Accepts list of lists (edges) and replaces the usernames with their unique IDs. This prepares output for the infomap code system.
 * ```write_net_txt```: Outputs .txt file with edges in a .net format for the [Infomap](https://www.mapequation.org/) system:
   <pre>source target [optional weight]
@@ -107,6 +112,21 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
   2 8
   5 4
   ...</pre>
+
+It also contains functions that enable you to isolate and output a CSV file with the hubs from each period. It does so with custom parsers for the infomap ```.map``` file formats:
+
+* ```read_map```: Helper function for infomap_hub_maker. Slices period's ```.map``` into their line-by-line indices and returns a dict of those values for use.
+* ```indices_getter```: Helper function for batch_map. Parses each line in the file and returns a list of lists, where each sublists is a line in the file.
+* ```batch_map```: Retrieves all map files in a single directory. It assumes that you have only the desired files in said directory. Returns a dict of each files based on their naming scheme with custom regex pattern. Each key denotes the file and its values are list of lists, where each sublist is a lines in the file.
+* ```infomap_hub_maker```: Takes fully hydrated Dict of the map files and parses its Nodes into per Period and Module Dicts.
+  * Args:
+    * dict_map= Dict of map files
+* ```output_infomap_hub```: Takes fully hydrated infomap dict and outputs it as a CSV file.
+  * Args:
+    * header= column names for DataFrame and CSV
+    * dict_hub= Hydrated Dict of hubs
+    * path= Output path
+    * file= Output file name
 
 ## periodObject Functions
 

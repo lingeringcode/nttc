@@ -16,7 +16,7 @@
 # already defined periodic episodes with the goal of naming each community AND examining their
 # respective topics over time in the corpus.
 
-# It functions only with Python 3.x and is not backwards-compatible (although one could probably branch off a 2.x port with minimal effort).
+# It functions only with Python 3.x and is not backwards-compatible.
 
 # Warning: nttc performs no custom error-handling, so make sure your inputs are formatted properly! If you have questions, please let me know via email.
 from os import listdir
@@ -223,21 +223,71 @@ def write_csv(dal, sys_path, __file_path__):
 
 ##################################################################
 '''
-    write_net_txt(): Outputs .txt file with edges in a .net format:
+    vert_lookup: Helper function for write_net_dict. It finds the
+        matching username and returns the period_based ID.
+'''
+def vert_lookup(a, u_list):
+    for u in u_list:
+        if a == u[2]:
+            return u[0]    
+
+'''
+    write_net_dict: Writes s Dict of vertices (nodes) and
+        arcs (edges) in the Pajek file format (.net).
+'''
+def write_net_dict(**kwargs):
+    index=1
+    verts = []
+    arcs = []
+    for v in kwargs['vertices']:
+        user = '\"'+v[1]+'\"'
+        if len(v) == 3:
+            verts.append([index, user, v[3]])
+        else:
+            verts.append([index, user, v[1]])
+        index = index + 1
+
+    for e in kwargs['keyed_edges']:
+        if len(e) == 3:
+            print(e[0], e[1], e[3])
+        else:
+            source = vert_lookup(e[0], verts)
+            target = vert_lookup(e[1], verts)
+            arcs.append([source,target])
+    p_dict = {
+        'vertices': verts,
+        'arcs': arcs
+    }
+    return p_dict
+
+'''
+    write_net_txt(): Outputs .net file Pajek format:
+        node_id nodes [optional weight]
+        1 "user1"
+        2 "user2"
+        ...
         source target [optional weight]
         1 2
-        2 4
-        2 8
-        5 4
+        2 1
         ...
 '''
 def write_net_txt(**kwargs):
     with open(join(kwargs['net_path'], kwargs['net_output']), "a") as f:
+        print( '*Vertices', len(kwargs['vertices']), file=f )
+        for v in kwargs['vertices']:
+            user = '\"'+v[1]+'\"'
+            if len(v) == 4:
+                print(v[0], user, v[3], file=f)
+            else:
+                print(v[0], v[1], file=f)
+        
+        print( '*Arcs', len(kwargs['keyed_edges']), file=f )
         for e in kwargs['keyed_edges']:
             if len(e) == 3:
                 print(e[0], e[1], e[3], file=f)
             else:
                 print(e[0], e[1], file=f)
+    print('File', kwargs['net_output'], 'written to', kwargs['net_path'])
 
 '''
     index_unique_users(): Take list of unique users and append IDs
@@ -269,8 +319,7 @@ def check_protected_dataype_names(le):
     return le
 
 '''
-    listify_unique_users(): Take edge list and create a list of 
-        unique users
+    listify_unique_users(): Take edge list and create a list of unique users
 '''
 def listify_unique_users(**kwargs):
     user_list = []
@@ -329,6 +378,177 @@ def netify_edges(**kwargs):
         status_counter = status_counter + 1
     print('Finished revising the edge list.')
     return new_edges_list
+
+'''
+    read_map: Helper function for infomap_hub_maker. Slices period's .map
+    into their line-by-line indices and returns a dict of those values for use.
+'''
+def read_map(**kwargs):
+    lines = [line.rstrip('\n') for line in open(join(kwargs['path'], kwargs['file']))]
+    return lines
+
+'''
+    indices_getter: Helper function for batch_map. Parses each line in the file
+    and returns a list of lists, where each sublists is a line in the file.
+'''
+def indices_getter(lines):
+    re_modules = r"\*Modules\s\d{1,}"
+    re_nodes = r"\*Nodes\s\d{1,}"
+    re_links = r"\*Links\s\d{1,}"
+    index = 0
+    mod_index = 0
+    node_index = 0
+    link_index = 0
+    mod_list = []
+    node_list = []
+    link_list = []
+    
+    for l in lines:
+        mod_match = re.match(re_modules, l)
+        node_match = re.match(re_nodes, l)
+        link_match = re.match(re_links, l)
+        
+        if mod_match != None:
+            mod_index = index
+        elif node_match != None:
+            node_index = index
+        elif link_match != None:
+            link_index = index
+            link_list.append([link_index+1, len(lines)-1])
+        index = index + 1
+    
+    mod_list.append([mod_index+1, node_index-1])
+    node_list.append([node_index+1, link_index-1])
+    
+    dict_indices = {
+        'modules': mod_list[0],
+        'nodes': node_list[0],
+        'links': link_list[0]
+    }
+
+    return dict_indices
+
+'''
+    batch_map: Retrieves all map files in a single directory. It assumes
+    that you have only the desired files in said directory. Returns a dict
+    of each files based on their naming scheme with custom regex pattern.
+    Each key denotes the file and its values are list of lists, where each sublist
+    is a lines in the file.
+'''
+def batch_map(**kwargs):
+    # Pattern for period number from filename
+    re_period = kwargs['regex']
+    periods = []
+    map_dicts = {}
+    
+    # Write list of periods
+    for f in listdir(kwargs['path']):
+        period_num = re.search(re_period, f)
+        if period_num[0]:
+            if not periods:
+                periods.append(period_num[0])
+            elif period_num[0] not in periods:
+                periods.append(period_num[0])
+    
+    # Listify files within path and ignore hidden files
+    list_of_files = [f for f in listdir(kwargs['path']) if not f.startswith('.') and isfile(join(kwargs['path'], f))]
+    
+    # Write per Period dict with each file as List of lines to parse
+    for f in list_of_files:
+        period_num = re.search(re_period, f)
+        p = period_num[0]
+        lines = read_map(path=kwargs['path'], file=f)
+        indices = indices_getter(lines)
+        map_dicts.update({ p: 
+                          {
+                              'lines': lines,
+                              'indices': indices
+                          } 
+                         })
+    
+    return map_dicts
+
+'''
+    infomap_hub_maker: Takes fully hydrated Dict of the map files
+        and parses its Nodes into per Period and Module Dicts.
+        - Args: 
+            - dict_map= Dict of map files
+'''
+def infomap_hub_maker(dict_map):
+    re_mod = r"\d{1,}\:"        #Module number
+    re_node = r"\:\d{1,2}"      #Node number
+    re_name = r"\"\S{1,}\""     #Node name
+    re_score = r"\d{1}\.\d{1,}" #Node's flow score
+    
+    # Travers each period in dictionary
+    for p in dict_map:
+        dict_hubs = {}
+        # Get indices for nodes in period's map
+        start = dict_map[p]['indices']['nodes'][0]
+        end = dict_map[p]['indices']['nodes'][1]
+        
+        # Traverse nodes in period's map
+        for n in dict_map[p]['lines'][start:end]:
+            mod_match = re.match(re_mod, n)
+            node_match = re.findall(re_node, n)
+            name_match = re.findall(re_name, n)
+            score_match = re.findall(re_score, n)
+
+            mod = mod_match[0][0:-1]
+            hub_list = []
+            
+            # Retrieve first 15 modules
+            if int(mod) == 16:
+                # Update period with infomap hubs
+                dict_map[p].update({
+                    'info_hub': dict_hubs
+                })
+                break # All done
+            elif mod not in dict_hubs:
+                node = node_match[0][1]
+                name = name_match[0][1:-1]
+                score = score_match[0]
+                dict_hubs.update({mod:
+                    [{
+                        'node': node,
+                        'name': name,
+                        'score': score
+                     }]
+                })
+            elif mod in dict_hubs and len(dict_hubs[mod]) >= 1 and len(dict_hubs[mod]) < 10:
+                node = node_match[0][1:]
+                name = name_match[0][1:-1]
+                score = score_match[0]
+                hub_list = {
+                    'node': node,
+                    'name': name,
+                    'score': score
+                }
+                dict_hubs[mod].append(hub_list)
+        
+    return dict_map
+
+'''
+    output_infomap_hub: Takes fully hydrated infomap dict and outputs it as a CSV file.
+        - Args: 
+            - header= column names for DataFrame and CSV
+            - dict_hub= Hydrated Dict of hubs
+            - path= Output path
+            - file= Output file name
+'''
+def output_infomap_hub(**kwargs):
+    hubs = []
+    for ih in kwargs['dict_hub']:
+        for i in kwargs['dict_hub'][ih]['info_hub']:
+            for h in kwargs['dict_hub'][ih]['info_hub'][i]:
+                hubs.append( [int(ih), int(i), h['name'], int(h['node']), float(h['score'])] ) 
+    df_info_hubs = pd.DataFrame(hubs, columns=kwargs['header'])
+
+    df_info_hubs.to_csv(join(kwargs['path'], kwargs['file']),
+                                    sep=',',
+                                    encoding='utf-8',
+                                    index=False)
+    print(kwargs['file'], ' written to ', kwargs['path'])
 
 ##################################################################
 
