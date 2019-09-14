@@ -128,6 +128,10 @@ It also contains functions that enable you to isolate and output a CSV file with
     * path= Output path
     * file= Output file name
 
+Here's an example use of the above functions for creating infomap hubs from ```.map``` files:
+
+<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_processing.png" />
+
 ## periodObject Functions
 
 * ```get_comm_nums```: Filters unique community column values into List
