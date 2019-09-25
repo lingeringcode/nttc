@@ -21,6 +21,8 @@
 # Warning: nttc performs no custom error-handling, so make sure your inputs are formatted properly! If you have questions, please let me know via email.
 from os import listdir
 from os.path import isfile, join
+import arrow
+import ast
 import csv
 import pandas as pd
 from collections import Counter
@@ -67,8 +69,10 @@ import numpy as np
 '''
 class allPeriodsObject:
     '''an object class with an attribute dict that stores per Period network data of nodes and edges in respective Dataframes'''
-    def __init__(self, all_period_networks_dict=None):
+    def __init__(self, all_period_networks_dict=None, period_dates=None, info_hubs=None):
         self.all_period_networks_dict = all_period_networks_dict
+        self.period_dates = period_dates
+        self.info_hubs = info_hubs
 
 class periodObject:
     '''an object class with attributes that store per Community subgraph properties'''
@@ -550,11 +554,199 @@ def output_infomap_hub(**kwargs):
                                     index=False)
     print(kwargs['file'], ' written to ', kwargs['path'])
 
+'''
+    add_comm: Helper function for sampling_module_hubs. 
+    - Args:
+        - m: DataFrame row of tweet mentions column data
+        - dfh: Full DataFrame of hubs data
+        - period_num: Integer of particular period number
+    - Returns List of mentioned users with updated hub info
+'''
+def add_comm(m, dfh, period_num):
+    period_comms = []
+    if isinstance(m, float) or m.startswith( '[' ) is False or m is 'nan':
+        return None
+    elif isinstance(m, float) or m.startswith( '[' ) is True or m is not 'nan':
+        m = ast.literal_eval(m)
+        if len(m) == 1:
+            found_hubber = dfh[(dfh.period == period_num) & (dfh.info_name == m[0])]
+            fh = found_hubber.values.tolist()
+            if len(fh) > 0:
+                period_comms.append( ( {'period': period_num, 'username':m[0], 'info_module':fh[0][1], 'info_node':fh[0][3], 'info_score':fh[0][4]} ) )
+        elif len(m) > 1:
+            for u in m:
+                found_hubber = dfh.where((dfh.period == period_num) & (dfh.info_name == u))
+                fh = found_hubber.values.tolist()
+                if len(fh) > 0:
+                    period_comms.append( ( {'period': period_num, 'username':m[0], 'info_module':fh[0][1], 'info_node':fh[0][3], 'info_score':fh[0][4]} ) )
+    return period_comms
+
+'''
+    sampling_module_hubs: Compares hub set with tweet data to ultimately 
+        output sampled tweets with hub information
+    - Args:
+        - period_dates: Dict of lists that include dates for each period of the corpus
+        - df_all_tweets: Pandas DataFrame of tweets
+        - df_hubs: Pandas DataFrame of infomapped hubs
+        - top_rts_sample: Integer of desired sample size of sorted top tweets (descending order)
+        - hub_sample: Integer of desired sample size to output
+        - columns: List of column names; each as a String. **Must match column names from tweet and hub data sets
+    - Returns DataFrame of top sampled tweets 
+'''
+def sampling_module_hubs(**kwargs):
+    for p in kwargs['period_dates']:
+        # 1. Use dates to find all tweets in period
+        df_p = kwargs['df_all_tweets'][kwargs['df_all_tweets']['date'].isin(kwargs['period_dates'][p])]
+        # 2. Sort tweets with top RT'd tweets in descending order
+        df_top_rts = df_p.sort_values(['retweets_count'], ascending=[False])
+        # 3. Save only top X sample
+        df_output = df_top_rts[:kwargs['top_rts_sample']]
+        
+        print('Sample of top', 
+              kwargs['top_rts_sample'],
+              'RT\'d tweets written and sorted.\nNow appending new column with hub information, which may take some time.')
+
+        # 4. Send tweet mentions column to add_comm to append new column 
+        #     with user mentioned and their community/module number 
+        sliced_hub = kwargs['df_hubs'][kwargs['df_hubs']['period'] == int(p)].copy()
+        period_num = int(p)
+        df_output['modules'] = df_output['mentions'].apply(
+            add_comm,
+            dfh=sliced_hub,
+            period_num=period_num).copy()
+
+        # 5. Filter out NaNs
+        df_filtered = df_output[df_output.mentions.notnull()].copy()
+        
+        print('Sampled tweets now includes column of hub data, based on mentions data.')
+
+        # 6. Based on the new comm column, filter into comm-based dicts
+        df_new = df_filtered[['modules', 'tweet', 'retweets_count', 'link', 'username', 'user_id']]
+        output_list = df_new.values.tolist()
+        filtered_output_list = []
+        for out in output_list:
+            if out[0]:
+                filtered_output_list.append(out)
+
+        # 7. Organize fol into per Community corpus
+        new_output = {}
+        for fol in filtered_output_list:
+            for f in fol[0]: # For each found mention
+                if str(f['period']) not in new_output: # Is period in dict?
+                    new_output.update({
+                        str(f['period']): [{
+                            'info_module':f['info_module'],
+                            'tweet':fol[1],
+                            'info_node':f['info_node'],
+                            'info_score':f['info_score'],
+                            'retweets_count':int(float(fol[2])),
+                            'link':fol[3],
+                            'username':fol[4],
+                            'user_id': fol[5]
+                        }]
+                    })
+                elif str(f['period']) in new_output: 
+                    new_output[str(f['period'])].append({
+                        'info_module':f['info_module'],
+                        'tweet':fol[1],
+                        'info_node':f['info_node'],
+                        'info_score':f['info_score'],
+                        'retweets_count':int(float(fol[2])),
+                        'link':fol[3],
+                        'username':fol[4],
+                        'user_id': fol[5]
+                    })
+        
+        print(
+            'Tweet data now ready for final sliced output with select',
+            'column names:\n\n', kwargs['columns'])
+        
+        # Write first n results as sample to qualitatively code
+        module_output = pd.DataFrame([], columns=kwargs['columns'])
+        for no in new_output:
+            x = 0
+            for c in new_output[no]:
+                if x == kwargs['hub_sample']:
+                    break
+                else:
+                    if c['link'] not in module_output.values and np.isnan(c['info_module']) == False: #Filter out repeat tweets and any non-module tweets
+                        data = { 
+                            'period':no, 
+                            'info_module':c['info_module'], 
+                            'tweet':c['tweet'], 
+                            'info_node':c['info_node'], 
+                            'info_score':c['info_score'], 
+                            'retweets_count':c['retweets_count'], 
+                            'link':c['link'], 
+                            'username':c['username'], 
+                            'user_id':c['user_id'] 
+                        }
+                        module_output = module_output.append(
+                            data, 
+                            ignore_index=True)
+                        x = x + 1
+        return module_output
+
+'''
+    batch_output_period_hub_samples: Periodic batch output that saves 
+        sampled tweets as a CSV. Assumes successively numbered periods
+    - Args:
+        - module_output: DataFrame of tweet sample data per Period per Module
+        - period_total: Interger of total number of periods
+        - file_ext: String of desired filename extension pattern
+        - period_path: String of desired path to save the files
+    - Returns nothing
+'''
+def batch_output_period_hub_samples(**kwargs):
+    x = 1
+    while x <= kwargs['period_total']:
+        p_file = 'p' + str(x) + kwargs['file_ext']
+        output = kwargs['module_output'][kwargs['module_output']['period'] == str(x)]
+        output.to_csv(join(kwargs['period_path'], p_file), sep=',', encoding='utf-8', index=False)
+        print('Wrote', p_file, 'to', kwargs['period_path'])
+        x = x + 1
+
 ##################################################################
 
-## periodObject Functions
+## allPeriodsObject Functions
 
 ##################################################################
+'''
+'''
+def period_maker(bd, ed):
+    # Make period date-range
+    begin_date = arrow.get(bd, 'YYYY-MM-DD')
+    end_date = arrow.get(ed, 'YYYY-MM-DD')
+    date_range = arrow.Arrow.range('day', begin_date, end_date)
+    return date_range
+
+'''
+    period_writer():  Accepts list of lists of period date information
+    and returns a Dict of per Period dates for temporal analyses.
+        - Args:
+            - periodObj: Optional first argument periodObject, Default is None
+            - 'ranges': Hierarchical list in following structure:
+                ranges = [
+                    ['p1', ['2018-01-01', '2018-03-30']],
+                    ['p2', ['2018-04-01', '2018-06-12']],
+                    ...
+                ]
+'''
+def period_dates_writer(allPeriodsObj=None, **kwargs):
+    period_dict = {}
+    for r in kwargs['ranges']:
+        period_list = []
+        p_dates = period_maker(r[1][0], r[1][1]) # send period date range
+        for d in p_dates:
+            # Append returned date range to period list
+            period_list.append( str(d.format('YYYY-MM-DD')) )
+        period_dict.update({r[0]: period_list})
+
+    if allPeriodsObj == None:
+        return period_dict
+    else:
+        allPeriodsObj.period_dates = period_dict
+        return allPeriodsObj
 
 '''
     get_comm_nums(): Filters community column values into List

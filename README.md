@@ -127,10 +127,35 @@ It also contains functions that enable you to isolate and output a CSV file with
     * dict_hub= Hydrated Dict of hubs
     * path= Output path
     * file= Output file name
+* ```sampling_module_hubs```: Compares hub set with tweet data to ultimately output sampled tweets with hub information.
+  * Args:
+    * period_dates: Dict of lists that include dates for each period of the corpus
+    * df_all_tweets: Pandas DataFrame of tweets
+    * df_hubs: Pandas DataFrame of infomapped hubs
+    * top_rts_sample: Integer of desired sample size of sorted top tweets (descending order)
+    * hub_sample: Integer of desired sample size to output
+    * columns: List of column names; each as a String. **Must match column names from tweet and hub data sets
+  * Returns DataFrame of top sampled tweets
+* ```add_comm```: Helper function for ```sampling_module_hubs```. It adds the module info based on the mention data column from the tweet data.
+  * Args:
+    * m: DataFrame row of tweet mentions column data
+    * dfh: Full DataFrame of hubs data
+    * period_num: Integer of particular period number
+  * Returns List of mentioned users with updated hub info
+* ```batch_output_period_hub_samples```: Periodic batch output that saves sampled tweets as a CSV. Assumes successively numbered periods.
+  * Args:
+    * module_output: DataFrame of tweet sample data per Period per Module
+    * period_total: Interger of total number of periods
+    * file_ext: String of desired filename extension pattern
+    * period_path: String of desired path to save the files
+  * Returns nothing
 
-Here's an example use of the above functions for creating infomap hubs from ```.map``` files:
-
-<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_processing.png" />
+1. Create infomap hubs from ```.map``` files:
+  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_processing.png" />
+2. Create a sample of tweet data cross-referenced with the infomapped hub file:
+  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_sampling.png" />
+3. Output sample in a batch based on the number of periods:
+  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_sampling_output.png" />
 
 ## periodObject Functions
 
