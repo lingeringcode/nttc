@@ -572,13 +572,15 @@ def add_comm(m, dfh, period_num):
             found_hubber = dfh[(dfh.period == period_num) & (dfh.info_name == m[0])]
             fh = found_hubber.values.tolist()
             if len(fh) > 0:
-                period_comms.append( ( {'period': period_num, 'username':m[0], 'info_module':fh[0][1], 'info_node':fh[0][3], 'info_score':fh[0][4]} ) )
+                period_comms.append( ( {'period': fh[0][0], 'username':fh[0][2], 'info_module':fh[0][1], 'info_node':fh[0][3], 'info_score':fh[0][4]} ) )
         elif len(m) > 1:
             for u in m:
                 found_hubber = dfh[(dfh.period == period_num) & (dfh.info_name == u)]
                 fh = found_hubber.values.tolist()
                 if len(fh) > 0:
-                    period_comms.append( ( {'period': period_num, 'username':m[0], 'info_module':fh[0][1], 'info_node':fh[0][3], 'info_score':fh[0][4]} ) )
+                    # Append each found instance
+                    for f in fh:
+                        period_comms.append( ( {'period': f[0], 'username':f[2], 'info_module':f[1], 'info_node':f[3], 'info_score':f[4]} ) )
     return period_comms
 
 '''
