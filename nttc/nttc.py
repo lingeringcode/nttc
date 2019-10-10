@@ -708,7 +708,7 @@ def batch_output_period_hub_samples(**kwargs):
     x = 1
     while x <= kwargs['period_total']:
         p_file = 'p' + str(x) + kwargs['file_ext']
-        output = kwargs['module_output'][kwargs['module_output']['period'] == str(x)]
+        output = kwargs['module_output'][ kwargs['module_output'].period == x ]
         output.to_csv(join(kwargs['period_path'], p_file), sep=',', encoding='utf-8', index=False)
         print('Wrote', p_file, 'to', kwargs['period_path'])
         x = x + 1
