@@ -555,32 +555,53 @@ def output_infomap_hub(**kwargs):
     print(kwargs['file'], ' written to ', kwargs['path'])
 
 '''
-    add_comm: Helper function for sampling_module_hubs. 
+    add_infomap: Helper function for sampling_module_hubs. 
     - Args:
-        - m: DataFrame row of tweet mentions column data
+        - dft: DataFrame of sampled tweet data
         - dfh: Full DataFrame of hubs data
         - period_num: Integer of particular period number
-    - Returns List of mentioned users with updated hub info
+    - Returns List of Dicts with hub and info_name mentions info
 '''
-def add_comm(m, dfh, period_num):
+def add_infomap(dft, dfh, period_num):
     period_comms = []
-    if isinstance(m, float) or m.startswith( '[' ) is False or m is 'nan':
-        return None
-    elif isinstance(m, float) or m.startswith( '[' ) is True or m is not 'nan':
-        m = ast.literal_eval(m)
-        if len(m) == 1:
-            found_hubber = dfh[(dfh.period == period_num) & (dfh.info_name == m[0])]
-            fh = found_hubber.values.tolist()
-            if len(fh) > 0:
-                period_comms.append( ( {'period': fh[0][0], 'info_name':fh[0][2], 'info_module':fh[0][1], 'info_node':fh[0][3], 'info_score':fh[0][4]} ) )
-        elif len(m) > 1:
-            for u in m:
-                found_hubber = dfh[(dfh.period == period_num) & (dfh.info_name == u)]
+    df_tweets = dft.copy().reset_index(drop=True)
+    for row in df_tweets.iterrows():
+        m = row['mentions']
+        if isinstance(m, str):
+            m = ast.literal_eval(m)
+            if len(m) == 1:
+                found_hubber = dfh[(dfh.period == period_num) & (dfh.info_name == m[0])]
                 fh = found_hubber.values.tolist()
                 if len(fh) > 0:
-                    # Append each found instance
-                    for f in fh:
-                        period_comms.append( ( {'period': f[0], 'info_name':f[2], 'info_module':f[1], 'info_node':f[3], 'info_score':f[4]} ) )
+                    period_comms.append( ( {
+                        'period': fh[0][0],
+                        'info_module':fh[0][1],
+                        'info_node':fh[0][3],
+                        'info_name_mentioned':fh[0][2],
+                        'tweet': row['tweet'],
+                        'info_score':fh[0][4],
+                        'retweets_count': row['retweets_count'],
+                        'link': row['link'],
+                        'user_id': row['user_id']
+                    } ) )
+            elif len(m) > 1:
+                for user in m:
+                    found_hubber = dfh[(dfh.period == period_num) & (dfh.info_name == user)]
+                    fh = found_hubber.values.tolist()
+                    if len(fh) > 0:
+                        # Append each found instance
+                        for f in fh:
+                            period_comms.append(({
+                                'period': f[0],
+                                'info_module':f[1],
+                                'info_node':f[3],
+                                'info_name_mentioned':f[2],
+                                'tweet': row['tweet'],
+                                'info_score':f[4],
+                                'retweets_count': row['retweets_count'],
+                                'link': row['link'],
+                                'user_id': row['user_id']
+                            }))
     return period_comms
 
 '''
@@ -597,8 +618,9 @@ def add_comm(m, dfh, period_num):
         - columns: List of column names; each as a String. **Must match column names from tweet and hub data sets
     - Returns DataFrame of top sampled tweets 
 '''
+
+# ADD INFOMAP COLS TO DF BEFORE SENDING HERE, THEN add_comm can fill in the row's col vals
 def sampling_module_hubs(**kwargs):
-    rows = []
     module_output = pd.DataFrame([], columns=kwargs['columns'])
     for p in kwargs['period_dates']:
         # 1. Use dates to find all tweets in period
@@ -610,90 +632,20 @@ def sampling_module_hubs(**kwargs):
         
         print('Sample of top', 
               kwargs['top_rts_sample'],
-              'RT\'d tweets written and sorted.\nNow appending new column with hub information, which may take some time.')
-
-        # 4. Send tweet mentions column to add_comm to append new column 
-        #     with user mentioned and their community/module number 
+              'RT\'d tweets written and sorted.\nNow writing new dataframe with combined hub information, which may take some time.')
+        
+        # 4. Send df_output, sliced_hub, and period_num to revised 
         sliced_hub = kwargs['df_hubs'][kwargs['df_hubs']['period'] == int(p)].copy()
         period_num = int(p)
-        df_output['modules'] = df_output['mentions'].apply(
-            add_comm,
+        new_rows = add_infomap(
+            dft=df_output,
             dfh=sliced_hub,
-            period_num=period_num).copy()
-
-        # 5. Filter out NaNs
-        df_filtered = df_output[df_output.mentions.notnull()].copy()
-        print('Sampled tweets now includes column of hub data, based on mentions data.')
-
-        # 6. Based on the new comm column, filter into comm-based dicts
-        df_new = df_filtered[['modules', 'tweet', 'retweets_count', 'link', 'username', 'user_id']]
-        output_list = df_new.values.tolist()
-        filtered_output_list = []
-        for out in output_list:
-            if out[0]:
-                filtered_output_list.append(out)
-                
-        # 7. Organize filtered_output_list into per cluster/community corpus
-        new_output = {}
-        for fol in filtered_output_list:
-            for f in fol[0]: # For each found mention
-                if str(f['period']) not in new_output: # Is period in dict?
-                    new_output.update({
-                        str(f['period']): [{
-                            'info_module':f['info_module'],
-                            'tweet':fol[1],
-                            'info_node':f['info_node'],
-                            'info_score':f['info_score'],
-                            'retweets_count':int(float(fol[2])),
-                            'link':fol[3],
-                            'info_name':f['info_name'],
-                            'user_id': fol[5]
-                        }]
-                    })
-                elif str(f['period']) in new_output: 
-                    new_output[str(f['period'])].append({
-                        'info_module':f['info_module'],
-                        'tweet':fol[1],
-                        'info_node':f['info_node'],
-                        'info_score':f['info_score'],
-                        'retweets_count':int(float(fol[2])),
-                        'link':fol[3],
-                        'info_name':f['info_name'],
-                        'user_id': fol[5]
-                    })
-                
-        print('Period', p, 'tweet data now being appended.')
-        
-        # Write first n results as sample to qualitatively code
-        for no in new_output:
-            x = 0
-            for c in new_output[no]:
-                if x == kwargs['hub_sample']:
-                    break
-                else:
-                    # Revise column names to be customizable, based on 
-                    # kwargs['columns']
-                    # TODO: Create function that checks if 3 already 
-                    # exist from info_node. If so, move on and have at 
-                    # least 3 from every node number per module/comm.
-                    if c['link'] not in module_output.values:
-                        data = { 
-                            'period':int(p), 
-                            'info_module':int(c['info_module']),
-                            'info_node':int(c['info_node']),
-                            'info_name':c['info_name'],
-                            'info_score':c['info_score'],
-                            'tweet':c['tweet'], 
-                            'retweets_count':int(c['retweets_count']), 
-                            'link':c['link'], 
-                            'user_id':c['user_id'] 
-                        }
-                        rows.append(data)
-                        x = x+1
-        print('Finished period', p)
-    
-    module_output = module_output.append(rows)
+            period_num=period_num
+        )
+        module_output = module_output.append(new_rows)
+        print('Completed', period_num, 'tweets.\n\n')
     return module_output
+
 '''
     batch_output_period_hub_samples: Periodic batch output that saves 
         sampled tweets as a CSV. Assumes successively numbered periods

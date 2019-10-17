@@ -136,12 +136,12 @@ It also contains functions that enable you to isolate and output a CSV file with
     * hub_sample: Integer of desired sample size to output
     * columns: List of column names; each as a String. **Must match column names from tweet and hub data sets
   * Returns DataFrame of top sampled tweets
-* ```add_comm```: Helper function for ```sampling_module_hubs```. It adds the module info based on the mention data column from the tweet data.
+* ```add_infomap```: Helper function for ```sampling_module_hubs```. It cross-references the sampled .
   * Args:
-    * m: DataFrame row of tweet mentions column data
+    * dft: DataFrame of sampled tweet data
     * dfh: Full DataFrame of hubs data
     * period_num: Integer of particular period number
-  * Returns List of mentioned users with updated hub info
+  * Returns List of Dicts with hub and info_name mentions info
 * ```batch_output_period_hub_samples```: Periodic batch output that saves sampled tweets as a CSV. Assumes successively numbered periods.
   * Args:
     * module_output: DataFrame of tweet sample data per Period per Module
