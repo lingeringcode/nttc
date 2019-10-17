@@ -582,6 +582,7 @@ def add_infomap(dft, dfh, period_num):
                         'info_score':fh[0][4],
                         'retweets_count': row['retweets_count'],
                         'link': row['link'],
+                        'user_name': row['user_name'],
                         'user_id': row['user_id']
                     } ) )
             elif len(m) > 1:
@@ -600,6 +601,7 @@ def add_infomap(dft, dfh, period_num):
                                 'info_score':f[4],
                                 'retweets_count': row['retweets_count'],
                                 'link': row['link'],
+                                'user_name': row['user_name'],
                                 'user_id': row['user_id']
                             }))
     return period_comms
@@ -618,7 +620,6 @@ def add_infomap(dft, dfh, period_num):
         - columns: List of column names; each as a String. **Must match column names from tweet and hub data sets
     - Returns DataFrame of top sampled tweets 
 '''
-
 def sampling_module_hubs(**kwargs):
     module_output = pd.DataFrame([], columns=kwargs['columns'])
     for p in kwargs['period_dates']:
