@@ -619,7 +619,6 @@ def add_infomap(dft, dfh, period_num):
     - Returns DataFrame of top sampled tweets 
 '''
 
-# ADD INFOMAP COLS TO DF BEFORE SENDING HERE, THEN add_comm can fill in the row's col vals
 def sampling_module_hubs(**kwargs):
     module_output = pd.DataFrame([], columns=kwargs['columns'])
     for p in kwargs['period_dates']:
