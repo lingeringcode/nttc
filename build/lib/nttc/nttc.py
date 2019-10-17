@@ -643,7 +643,7 @@ def sampling_module_hubs(**kwargs):
             period_num=period_num
         )
         module_output = module_output.append(new_rows)
-        print('Completed', period_num, 'tweets.\n\n')
+        print('Completed period', period_num, 'tweets.\n\n')
     return module_output
 
 '''
