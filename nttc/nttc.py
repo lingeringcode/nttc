@@ -565,7 +565,7 @@ def output_infomap_hub(**kwargs):
 def add_infomap(dft, dfh, period_num):
     period_comms = []
     df_tweets = dft.copy().reset_index(drop=True)
-    for row in df_tweets.iterrows():
+    for index, row in df_tweets.iterrows():
         m = row['mentions']
         if isinstance(m, str):
             m = ast.literal_eval(m)
@@ -582,7 +582,7 @@ def add_infomap(dft, dfh, period_num):
                         'info_score':fh[0][4],
                         'retweets_count': row['retweets_count'],
                         'link': row['link'],
-                        'user_name': row['user_name'],
+                        'username': row['username'],
                         'user_id': row['user_id']
                     } ) )
             elif len(m) > 1:
@@ -601,7 +601,7 @@ def add_infomap(dft, dfh, period_num):
                                 'info_score':f[4],
                                 'retweets_count': row['retweets_count'],
                                 'link': row['link'],
-                                'user_name': row['user_name'],
+                                'username': row['username'],
                                 'user_id': row['user_id']
                             }))
     return period_comms
