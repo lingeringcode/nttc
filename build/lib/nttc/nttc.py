@@ -82,10 +82,10 @@ class periodObject:
 
 class communitiesObject:
     '''an object class with attributes for various matched-community data and metadata'''
-    def __init__(self, tweet_slice=None, split_docs=None, id2word=None, texts=None,
+    def __init__(self, content_slice=None, split_docs=None, id2word=None, texts=None,
                  corpus=None, readme=None, model=None, perplexity=None, coherence=None,
                  top_rts=None, top_mentions=None, full_hub=None):
-        self.tweet_slice = tweet_slice
+        self.content_slice = content_slice
         self.split_docs = split_docs
         self.id2word = id2word
         self.texts = texts
@@ -725,11 +725,11 @@ def get_comm_nums(**kwargs):
         elif c not in c_list:
             c_list.append(c)
     
-    if kwargs['period_obj']:
+    if not kwargs['period_obj'] or kwargs['period_obj'] is None:
+        return c_list
+    elif kwargs['period_obj']:
         kwargs['period_obj'].comm_nums = c_list
         return kwargs['period_obj']
-    elif not kwargs['period_obj']:
-        return c_list
 
 '''
     comm_sender && write_community_list functions create a dict of nodes 
@@ -916,51 +916,63 @@ def get_all_comms(dft, col_community, col_tweets):
     return acts
 
 '''
-    Write per Community tweets into a dictionary
-        # Args: community list
+    Write per Community content segments into a dictionary
+    - Args:
+        - comm_list= List of community numbers / labels
+        - df_content= DataFrame of data set in question
+        - comm_col= String of column name for community/module
+        - content_col= Sring of column name for content to parse and examine
+        - sample_size_percentage= Desired percentage to sample from full set
+    - Returns Dict of sliced DataFrames (value) as per their community/module (key)
+
 '''
-def comm_dict_writer(comm_list, dft, col_community, col_tweets):
+def comm_dict_writer(**kwargs):
     dict_c = {}
-    for c in comm_list:
+    for c in kwargs['comm_list']:
         out_comm_obj = communitiesObject()
-        all_comms = get_all_comms(dft, col_community, col_tweets)
-        df_slice = all_comms[all_comms['community'] == c]
+        all_comms = get_all_comms(kwargs['df_content'], kwargs['comm_col'], kwargs['content_col'])
+        df_slice = all_comms[all_comms[kwargs['comm_col']] == c]
         df_slice = df_slice.reset_index(drop=True)
-        out_comm_obj.tweet_slice = df_slice
-        dict_c.update( { c: out_comm_obj } )
+        out_comm_obj.content_slice = df_slice
+        dict_c.update( { str(c): out_comm_obj } )
 
     return dict_c
 
 '''
-    Isolates community's tweets, then splits string into list of strings per Tweet
+    Isolates community's content, then splits string into list of strings per Tweet
         preparing them for the topic modeling
 
-        Args: Community number as String, Dictionary of communities' tweets
-        Returns as Dataframe of tweets for resepective community
+        Args: Community number as String, Dictionary of communities' content
+        Returns as Dataframe of content for resepective community
 '''
-def split_community_tweets(dict_comm_tweets, col_name):
-    for cdf in dict_comm_tweets:
-        c_tweets = dict_comm_tweets[cdf].tweet_slice[col_name]
-        # Split tweets; includes emoji support
+def split_community_tweets(**kwargs):
+    for cdf in kwargs['dict_comm_obj']:
+        # Sample size
+        print('Length of community', cdf, 'data set:', len(kwargs['dict_comm_obj'][cdf].content_slice))
+        sample_size = len(kwargs['dict_comm_obj'][cdf].content_slice) * kwargs['sample_size_percentage']
+        print('Sample size: ', int(sample_size))
+
+        c_content = kwargs['dict_comm_obj'][cdf].content_slice[kwargs['col_name']][:int(sample_size)]
+        # Split content segments; includes emoji support
         c_split = []
-        for t in c_tweets.values.tolist():
+        for t in c_content.values.tolist():
             em_split_emoji = emoji.get_emoji_regexp().split(t)
             em_split_whitespace = [substr.split() for substr in em_split_emoji]
             em_split = functools.reduce(operator.concat, em_split_whitespace)
-            # Append split tweet to list
+            # Append split content to list
             c_split.append(em_split)
 
         # Transform list into Dataframe
         df_documents = pd.DataFrame()
         for ts in c_split:
-            df_documents = df_documents.append( {'tweet': ts}, ignore_index=True )
+            df_documents = df_documents.append( {kwargs['col_name']: ts}, ignore_index=True )
 
         # Transform into list of processed docs
-        split_docs = df_documents['tweet']
+        split_docs = df_documents[kwargs['col_name']]
         cleaned_split_docs = clean_split_docs(split_docs)
-        dict_comm_tweets[cdf].split_docs = cleaned_split_docs
+        kwargs['dict_comm_obj'][cdf].split_docs = cleaned_split_docs
     print( ' \'processed_docs\': dataframe written for each community dictionary.' )
-    return dict_comm_tweets
+    return kwargs['dict_comm_obj']
 
 '''
     Removes punctuation, makes lowercase, removes stopwords, and converts into dataframe for topic modeling
@@ -1055,7 +1067,7 @@ def tm_maker(**kwargs):
     return kwargs['split_comms']
 
 '''
-    Appends hubs' top RT'd tweets and usersto respective period and community object
+    Appends hubs' top RT'd tweets and users to respective period and community object
         -- Args:
             Dataframe of hub targets,
             Dict of Objects with .sources,
