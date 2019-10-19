@@ -50,7 +50,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
     - ```.subgraphs_dict```: Dictionary of period's community nodes and edges data.
 
 * ```communitiesObject```: Object with properties that generate topic model and also help you name them more easily. Object properties are as follows:
-    - ```.tweet_slice```: dict of a sample community's tweets
+    - ```.content_slice```: dict of a sample community's content segments
     - ```.split_docs```: split version of sampled tweets
     - ```.id2word```: dict version of split_docs
     - ```.texts```: Listified version of sample
@@ -113,7 +113,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
   5 4
   ...</pre>
 
-It also contains functions that enable you to isolate and output a CSV file with the hubs from each period. It does so with custom parsers for the infomap ```.map``` file formats:
+It also contains functions that enable you to isolate and output a CSV file with the hubs from each period. It does so with custom parsers for the [infomap ```.map``` file formats](https://www.mapequation.org/code.html#Map-format):
 
 * ```read_map```: Helper function for infomap_hub_maker. Slices period's ```.map``` into their line-by-line indices and returns a dict of those values for use.
 * ```indices_getter```: Helper function for batch_map. Parses each line in the file and returns a list of lists, where each sublists is a line in the file.
