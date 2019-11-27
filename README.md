@@ -158,7 +158,7 @@ It also contains functions that enable you to isolate and output a CSV file with
     * period_path: String of desired path to save the files
   * Returns nothing
 
-1. Create infomap hubs from ```.map``` files:
+1. Create infomap hubs from ```.ftree``` files:
   <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_processing.png" />
 2. Create a sample of tweet data cross-referenced with the infomapped hub file:
   <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_sampling.png" />
