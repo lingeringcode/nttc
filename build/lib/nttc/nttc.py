@@ -503,6 +503,64 @@ def batch_map(**kwargs):
     return map_dicts
 
 '''
+    append_percentages: Helper function for ranker(). Appends each node's total_percentage to the list
+    - Args:
+        - rl= List of lists. Ranked list of nodes per hub
+'''
+def append_percentages(rl):
+    for n in rl:
+        if n[3] == 1:
+            n.append(1.0)
+        else:
+            percent = float(n[1]) / float(n[2])
+            n.append(float(percent))
+    return rl
+    
+'''
+    append_rank: Helper function for ranker(). It appends the rank number for the 'spot' value.
+'''
+def append_rank(lnr):
+    i = 1
+    for n in lnr:
+        n.append(i)
+        i = i +1
+    return lnr
+
+'''
+    ranker: Appends rank and percentages at different aggregate levels.
+    - Args:
+        - rank_type= String. Argument option for type of ranking to conduct. Currently only per_hub.
+        - tdhn= Dict of corpus. Traverses the 'info_hub'
+    - Return
+        - tdhn= Updated 'info_hub' with 'percentage_total' per hub and 'spot' for each node per hub,
+    - TODO: Add per_party and per_hubname
+'''
+def ranker(tdhn, **kwargs):
+    if kwargs['rank_type'] == 'per_hub':
+        for p in tdhn:
+            for h in tdhn[p]['info_hub']:
+                # Write list of hub's nodes and flow scores as a list of tuples
+                list_nodes_unranked = []
+                for n in tdhn[p]['info_hub'][h]:
+                    name = n['name']
+                    flow = n['score']
+                    total_hub_flow = n['total_hub_flow_score']
+                    listed_rank = [ name, format(flow, 'f'), format(total_hub_flow, 'f') ]
+                    list_nodes_unranked.append(listed_rank)
+                # Rank the list
+                list_nodes_ranked = sorted(list_nodes_unranked, key=lambda x: x[1], reverse=True)
+                list_nodes_appended_ranks = append_rank(list_nodes_ranked)
+                listed_nodes_percentages = append_percentages(list_nodes_appended_ranks)
+
+                # Update hub Dict with percentages
+                for per in tdhn[p]['info_hub'][h]:
+                    for lnp in listed_nodes_percentages:
+                        if per['name'] == lnp[0]:
+                            per.update({'percentage_total': lnp[4]})
+                            per.update({'spot': lnp[3]})
+        return tdhn
+
+'''
     infomap_hub_maker: Takes fully hydrated Dict of the map or ftree files
         and parses its Nodes into per Period and Module Dicts.
         - Args: 
@@ -582,8 +640,9 @@ def infomap_hub_maker(dict_map, **kwargs):
                 
                 mod = mod_match[0][0:-1] #Remove colon
                 flow = flow_match[0][0][:-1] #Remove whitespace at end
+                flow = float(flow)
                 name = name_match[0][1:-1] #Remove double-quotes
-                node = node_match[0][1:] #Remove quote and whitespace start
+                node = node_match[0][2:] #Remove quote and whitespace start
                 
                 hub_list = []
 
@@ -613,9 +672,63 @@ def infomap_hub_maker(dict_map, **kwargs):
     return dict_map
 
 '''
+    get_score_total: Helper function for score_summer. Tallies scores per Hub.
+    - Args:
+        - list_nodes= List of Dicts
+    - Return
+        - total= Float. Total flow score for a Hub.
+'''
+def get_score_total(list_nodes):
+    total = 0.0
+    for n in list_nodes:
+        s = format(n['score'], 'f')
+        total = total + float(s)
+    return total
+
+'''
+  get_period_flow_total: Helper function for score_summer. Tallies scores per Period across hubs.
+  - Args:
+      - lpt= List. Contains hub totals per Period.
+  - Return
+      - Float. Total flow score for a Period. 
+'''
+def get_period_flow_total(lpt):
+    pt = 0.0
+    for t in lpt:
+        pt = pt + t
+    return pt 
+    
+'''
+    score_summer(): Tally scores from each module per period and append a score_total to each node instance per module for every period.
+    - Args:
+        - dhn= Dict of hubs returned from info_hub_maker
+'''
+def score_summer(dhn):
+    for p in dhn:
+        list_period_totals = []
+        for h in dhn[p]['info_hub']:
+            total_hub_flow = 0.0
+            total_hub_flow = get_score_total(dhn[p]['info_hub'][h])
+            
+            # Update hub with flow score total for each node in hub
+            for ln in dhn[p]['info_hub'][h]:
+                ln.update({'total_hub_flow_score': total_hub_flow})
+            
+            # Append hub total to list for period tally later
+            list_period_totals.append(total_hub_flow)
+        pt = get_period_flow_total(list_period_totals)
+        # Update each node in each hub in each period with period flow scores
+        for ht in dhn[p]['info_hub']:
+            # Update hub with flow score total for each node in hub
+            for pln in dhn[p]['info_hub'][ht]:
+                pln.update({'total_period_flow_score': pt})
+    return dhn
+
+'''
     output_infomap_hub: Takes fully hydrated infomap dict and outputs it as a CSV file.
         - Args: 
-            - header= column names for DataFrame and CSV
+            - header= column names for DataFrame and CSV; 
+                - Assumes they're in order with period and hub in first and second position
             - dict_hub= Hydrated Dict of hubs
             - path= Output path
             - file= Output file name
@@ -625,7 +738,10 @@ def output_infomap_hub(**kwargs):
     for ih in kwargs['dict_hub']:
         for i in kwargs['dict_hub'][ih]['info_hub']:
             for h in kwargs['dict_hub'][ih]['info_hub'][i]:
-                hubs.append( [int(ih), int(i), h['name'], int(h['node']), float(h['score'])] ) 
+                temp_hub = [int(ih), int(i)]
+                for c in kwargs['header'][2:]:
+                    temp_hub.append(h[c])
+                hubs.append(temp_hub)
     df_info_hubs = pd.DataFrame(hubs, columns=kwargs['header'])
 
     df_info_hubs.to_csv(join(kwargs['path'], kwargs['file']),
