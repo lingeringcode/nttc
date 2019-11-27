@@ -384,21 +384,25 @@ def netify_edges(**kwargs):
     return new_edges_list
 
 '''
-    read_map: Helper function for infomap_hub_maker. Slices period's .map
+    read_map_or_ftree: Helper function for infomap_hub_maker. Slices period's .map
     into their line-by-line indices and returns a dict of those values for use.
 '''
-def read_map(**kwargs):
+def read_map_or_ftree(**kwargs):
     lines = [line.rstrip('\n') for line in open(join(kwargs['path'], kwargs['file']))]
     return lines
 
 '''
     indices_getter: Helper function for batch_map. Parses each line in the file
     and returns a list of lists, where each sublists is a line in the file.
+    - Future version could accept a dict of regex delimiters and parse file base
+        on those given parameters.
 '''
-def indices_getter(lines):
+def indices_getter(file_type, lines):
     re_modules = r"\*Modules\s\d{1,}"
     re_nodes = r"\*Nodes\s\d{1,}"
     re_links = r"\*Links\s\d{1,}"
+    re_ftree = r"\#\spath\sflow\sname\snode\:"
+    re_ftree_links = r"\*Links\sdirected"
     index = 0
     mod_index = 0
     node_index = 0
@@ -406,29 +410,47 @@ def indices_getter(lines):
     mod_list = []
     node_list = []
     link_list = []
+    ftree_list = []
     
-    for l in lines:
-        mod_match = re.match(re_modules, l)
-        node_match = re.match(re_nodes, l)
-        link_match = re.match(re_links, l)
+    if file_type == 'map':
+        for l in lines:
+            mod_match = re.match(re_modules, l)
+            node_match = re.match(re_nodes, l)
+            link_match = re.match(re_links, l)
+            
+            if mod_match != None:
+                mod_index = index
+            elif node_match != None:
+                node_index = index
+            elif link_match != None:
+                link_index = index
+                link_list.append([link_index+1, len(lines)-1])
+            index = index + 1
         
-        if mod_match != None:
-            mod_index = index
-        elif node_match != None:
-            node_index = index
-        elif link_match != None:
-            link_index = index
-            link_list.append([link_index+1, len(lines)-1])
-        index = index + 1
-    
-    mod_list.append([mod_index+1, node_index-1])
-    node_list.append([node_index+1, link_index-1])
-    
-    dict_indices = {
-        'modules': mod_list[0],
-        'nodes': node_list[0],
-        'links': link_list[0]
-    }
+        mod_list.append([mod_index+1, node_index-1])
+        node_list.append([node_index+1, link_index-1])
+        
+        dict_indices = {
+            'modules': mod_list[0],
+            'nodes': node_list[0],
+            'links': link_list[0]
+        }
+    if file_type == 'ftree':
+        for l in lines:
+            ftree_match = re.match(re_ftree, l)
+            link_match = re.match(re_ftree_links, l)
+            
+            if ftree_match != None:
+                ftree_index = index
+            elif link_match != None:
+                link_index = index
+            index = index + 1
+        
+        ftree_list.append([ftree_index+1, link_index-1])
+        
+        dict_indices = {
+            'ftree': ftree_list[0]
+        }
 
     return dict_indices
 
@@ -438,12 +460,15 @@ def indices_getter(lines):
     of each files based on their naming scheme with custom regex pattern.
     Each key denotes the file and its values are list of lists, where each sublist
     is a lines in the file.
+    - regex= Regular expression for filename scheme
+    - path= String. Path for directory with .map or .ftree files
 '''
 def batch_map(**kwargs):
     # Pattern for period number from filename
     re_period = kwargs['regex']
     periods = []
     map_dicts = {}
+    indices = {}
     
     # Write list of periods
     for f in listdir(kwargs['path']):
@@ -461,74 +486,129 @@ def batch_map(**kwargs):
     for f in list_of_files:
         period_num = re.search(re_period, f)
         p = period_num[0]
-        lines = read_map(path=kwargs['path'], file=f)
-        indices = indices_getter(lines)
+        lines = read_map_or_ftree(path=kwargs['path'], file=f)
+
+        if kwargs['file_type'] == 'map':
+            indices = indices_getter(kwargs['file_type'], lines)
+        elif kwargs['file_type'] == 'ftree':
+            indices = indices_getter(kwargs['file_type'], lines)
+        
         map_dicts.update({ p: 
-                          {
-                              'lines': lines,
-                              'indices': indices
-                          } 
-                         })
+                        {
+                            'lines': lines,
+                            'indices': indices
+                        } 
+        })
     
     return map_dicts
 
 '''
-    infomap_hub_maker: Takes fully hydrated Dict of the map files
+    infomap_hub_maker: Takes fully hydrated Dict of the map or ftree files
         and parses its Nodes into per Period and Module Dicts.
         - Args: 
+            - file_type= String. 'map' or 'ftree' file type designation
             - dict_map= Dict of map files
+            - mod_sample_size= Integer. Number of modules to sample
+            - hub_sample_size= Integer. number of nodes to sample for "hub" of each module
+        - Output:
+            - dict_map= Dict with new 'info_hub' key hydrated with hubs
 '''
-def infomap_hub_maker(dict_map):
-    re_mod = r"\d{1,}\:"        #Module number
-    re_node = r"\:\d{1,2}"      #Node number
-    re_name = r"\"\S{1,}\""     #Node name
+def infomap_hub_maker(dict_map, **kwargs):
+    re_mod = r"\d{1,}\:"        #Map module number
+    re_node = r"\:\d{1,2}"      #Map node number
+    re_name = r"\"\S{1,}\""     #Map node name
     re_score = r"\d{1}\.\d{1,}" #Node's flow score
     
-    # Travers each period in dictionary
+    re_ftree_module = r"\d{1,2}\:"
+    re_ftree_flow = r"((\d\.\d{1,}\s)|(\d\.\d{1,}e\-\d{0,}\s)|(\s0\s\"))"
+    re_ftree_username = r"\".{0,}\""
+    re_ftree_node = r"\"\s\d{0,}"
+    
+    # Traverse each period in dictionary
     for p in dict_map:
         dict_hubs = {}
-        # Get indices for nodes in period's map
-        start = dict_map[p]['indices']['nodes'][0]
-        end = dict_map[p]['indices']['nodes'][1]
         
-        # Traverse nodes in period's map
-        for n in dict_map[p]['lines'][start:end]:
-            mod_match = re.match(re_mod, n)
-            node_match = re.findall(re_node, n)
-            name_match = re.findall(re_name, n)
-            score_match = re.findall(re_score, n)
-
-            mod = mod_match[0][0:-1]
-            hub_list = []
+        if kwargs['file_type'] == 'map':
+            # Get indices for nodes in period's map
+            start = dict_map[p]['indices']['nodes'][0]
+            end = dict_map[p]['indices']['nodes'][1]
             
-            # Retrieve first 15 modules
-            if int(mod) == 16:
-                # Update period with infomap hubs
-                dict_map[p].update({
-                    'info_hub': dict_hubs
-                })
-                break # All done
-            elif mod not in dict_hubs:
-                node = node_match[0][1]
-                name = name_match[0][1:-1]
-                score = score_match[0]
-                dict_hubs.update({mod:
-                    [{
-                        'node': node,
-                        'name': name,
-                        'score': score
-                     }]
-                })
-            elif mod in dict_hubs and len(dict_hubs[mod]) >= 1 and len(dict_hubs[mod]) < 10:
+            # Traverse nodes in period's map
+            for n in dict_map[p]['lines'][start:end]:
+                mod_match = re.match(re_mod, n)
+                node_match = re.findall(re_node, n)
+                name_match = re.findall(re_name, n)
+                score_match = re.findall(re_score, n)
+
+                mod = mod_match[0][0:-1]
                 node = node_match[0][1:]
                 name = name_match[0][1:-1]
                 score = score_match[0]
-                hub_list = {
-                    'node': node,
-                    'name': name,
-                    'score': score
-                }
-                dict_hubs[mod].append(hub_list)
+                hub_list = []
+
+                # Retrieve first n modules
+                if int(mod) == (kwargs['mod_sample_size']+1):
+                    # Update period with infomap hubs
+                    dict_map[p].update({
+                        'info_hub': dict_hubs
+                    })
+                    break # All done
+                elif mod not in dict_hubs:
+                    dict_hubs.update({mod:
+                        [{
+                            'node': node,
+                            'name': name,
+                            'score': score
+                         }]
+                    })
+                elif mod in dict_hubs and len(dict_hubs[mod]) >= 1 and len(dict_hubs[mod]) < 10:
+                    hub_list = {
+                        'node': node,
+                        'name': name,
+                        'score': score
+                    }
+                    dict_hubs[mod].append(hub_list)
+        if kwargs['file_type'] == 'ftree':
+            # Get indices for ftree in period's flow values
+            start = dict_map[p]['indices']['ftree'][0]
+            end = dict_map[p]['indices']['ftree'][1]
+            
+            # Traverse nodes in period's ftree
+            for n in dict_map[p]['lines'][start:end]:
+                mod_match = re.match(re_ftree_module, n)
+                flow_match = re.findall(re_ftree_flow, n)
+                name_match = re.findall(re_ftree_username, n)
+                node_match = re.findall(re_ftree_node, n)
+                
+                mod = mod_match[0][0:-1] #Remove colon
+                flow = flow_match[0][0][:-1] #Remove whitespace at end
+                name = name_match[0][1:-1] #Remove double-quotes
+                node = node_match[0][1:] #Remove quote and whitespace start
+                
+                hub_list = []
+
+                 # Retrieve first n modules
+                if int(mod) == (kwargs['mod_sample_size']+1):
+                    # Update period with infomap hubs
+                    dict_map[p].update({
+                        'info_hub': dict_hubs
+                    })
+                    break # All done
+                elif mod not in dict_hubs and node != '0 "':
+                    dict_hubs.update({mod:
+                        [{
+                            'node': node,
+                            'name': name,
+                            'score': flow
+                         }]
+                    })
+                elif mod in dict_hubs and len(dict_hubs[mod]) >= 1 and len(dict_hubs[mod]) < kwargs['hub_sample_size'] and node != '0 "':
+                    hub_list = {
+                        'node': node,
+                        'name': name,
+                        'score': flow
+                    }
+                    dict_hubs[mod].append(hub_list)
         
     return dict_map
 

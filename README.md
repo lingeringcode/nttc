@@ -113,14 +113,22 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
   5 4
   ...</pre>
 
-It also contains functions that enable you to isolate and output a CSV file with the hubs from each period. It does so with custom parsers for the [infomap ```.map``` file formats](https://www.mapequation.org/code.html#Map-format):
+It also contains functions that enable you to isolate and output a CSV file with the hubs from each period. It does so with custom parsers for the infomap [```.map```](https://www.mapequation.org/code.html#Map-format) and [```.ftree```](https://www.mapequation.org/code.html#Map-format) file formats:
 
-* ```read_map```: Helper function for infomap_hub_maker. Slices period's ```.map``` into their line-by-line indices and returns a dict of those values for use.
+* ```read_map_or_ftree```: Helper function for infomap_hub_maker. Slices period's ```.map``` or ```.ftree``` into their line-by-line indices and returns a dict of those values for use.
 * ```indices_getter```: Helper function for batch_map. Parses each line in the file and returns a list of lists, where each sublists is a line in the file.
+    - Future version could accept a dict of regex delimiters and parse file base on those given parameters.
 * ```batch_map```: Retrieves all map files in a single directory. It assumes that you have only the desired files in said directory. Returns a dict of each files based on their naming scheme with custom regex pattern. Each key denotes the file and its values are list of lists, where each sublist is a lines in the file.
-* ```infomap_hub_maker```: Takes fully hydrated Dict of the map files and parses its Nodes into per Period and Module Dicts.
-  * Args:
-    * dict_map= Dict of map files
+  - ```regex```= Regular expression for filename scheme
+  - ```path```= String. Path for directory with .map or .ftree files
+* ```infomap_hub_maker```: Takes fully hydrated Dict of the ```map``` or ```ftree``` files and parses its Nodes into per Period and Module Dicts.
+  - Args: 
+      - ```file_type```= String. 'map' or 'ftree' file type designation
+      - ```dict_map```= Dict of map files
+      - ```mod_sample_size```= Integer. Number of modules to sample
+      - ```hub_sample_size```= Integer. number of nodes to sample for "hub" of each module
+  - Output:
+      - ```dict_map```= Dict with new ```info_hub``` key hydrated with hubs
 * ```output_infomap_hub```: Takes fully hydrated infomap dict and outputs it as a CSV file.
   * Args:
     * header= column names for DataFrame and CSV
