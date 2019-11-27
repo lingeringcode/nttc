@@ -121,6 +121,30 @@ It also contains functions that enable you to isolate and output a CSV file with
 * ```batch_map```: Retrieves all map files in a single directory. It assumes that you have only the desired files in said directory. Returns a dict of each files based on their naming scheme with custom regex pattern. Each key denotes the file and its values are list of lists, where each sublist is a lines in the file.
   - ```regex```= Regular expression for filename scheme
   - ```path```= String. Path for directory with .map or .ftree files
+* ```ranker```: Appends rank and percentages at different aggregate levels.
+    - Args:
+        - ```rank_type```= String. Argument option for type of ranking to conduct. Currently only per_hub.
+        - ```tdhn```= Dict of corpus. Traverses the 'info_hub'
+    - Return
+        - ```tdhn```= Updated 'info_hub' with 'percentage_total' per hub and 'spot' for each node per hub,
+    - TODO: Add per_party and per_hubname
+* ```append_rank```: Helper function for ranker(). It appends the rank number for the 'spot' value.
+* ```append_percentages```: Helper function for ranker(). Appends each node's total_percentage to the list
+    - Args:
+        - ``rl``= List of lists. Ranked list of nodes per hub
+* ```score_summer```(): Tally scores from each module per period and append a score_total to each node instance per module for every period.
+    - Args:
+        - ```dhn```= Dict of hubs returned from info_hub_maker
+* ```get_period_flow_total```: Helper function for score_summer. Tallies scores per Period across hubs.
+  - Args:
+      - ```lpt```= List. Contains hub totals per Period.
+  - Return
+      - Float. Total flow score for a Period.
+* ```get_score_total```: Helper function for score_summer. Tallies scores per Hub.
+    - Args:
+        - ```list_nodes```= List of Dicts
+    - Return
+        - ```total```= Float. Total flow score for a Hub.
 * ```infomap_hub_maker```: Takes fully hydrated Dict of the ```map``` or ```ftree``` files and parses its Nodes into per Period and Module Dicts.
   - Args: 
       - ```file_type```= String. 'map' or 'ftree' file type designation
@@ -130,11 +154,12 @@ It also contains functions that enable you to isolate and output a CSV file with
   - Output:
       - ```dict_map```= Dict with new ```info_hub``` key hydrated with hubs
 * ```output_infomap_hub```: Takes fully hydrated infomap dict and outputs it as a CSV file.
-  * Args:
-    * header= column names for DataFrame and CSV
-    * dict_hub= Hydrated Dict of hubs
-    * path= Output path
-    * file= Output file name
+  - Args: 
+      - ```header```= column names for DataFrame and CSV; 
+          - Assumes they're in order with period and hub in first and second position
+      - ```dict_hub```= Hydrated Dict of hubs
+      - ``path``= Output path
+      - ``file``= Output file name
 * ```sampling_module_hubs```: Compares hub set with tweet data to ultimately output sampled tweets with hub information.
   * Args:
     * period_dates: Dict of lists that include dates for each period of the corpus
