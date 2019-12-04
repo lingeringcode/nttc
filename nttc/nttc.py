@@ -462,6 +462,7 @@ def indices_getter(file_type, lines):
     is a lines in the file.
     - regex= Regular expression for filename scheme
     - path= String. Path for directory with .map or .ftree files
+    - file_type= String. File format type, such as 'map' or 'ftree'
 '''
 def batch_map(**kwargs):
     # Pattern for period number from filename
@@ -469,18 +470,17 @@ def batch_map(**kwargs):
     periods = []
     map_dicts = {}
     indices = {}
+    # Listify files within path, ignore hidden files, look for only defined type
+    list_of_files = [f for f in listdir(kwargs['path']) if not f.startswith('.') and f.endswith(kwargs['file_type']) and isfile(join(kwargs['path'], f))]
     
     # Write list of periods
-    for f in listdir(kwargs['path']):
-        period_num = re.search(re_period, f)
+    for f in list_of_files:
+        period_num = re.findall(re_period, f)
         if period_num[0]:
             if not periods:
                 periods.append(period_num[0])
             elif period_num[0] not in periods:
                 periods.append(period_num[0])
-    
-    # Listify files within path and ignore hidden files
-    list_of_files = [f for f in listdir(kwargs['path']) if not f.startswith('.') and isfile(join(kwargs['path'], f))]
     
     # Write per Period dict with each file as List of lines to parse
     for f in list_of_files:
@@ -501,7 +501,6 @@ def batch_map(**kwargs):
         })
     
     return map_dicts
-
 '''
     append_percentages: Helper function for ranker(). Appends each node's total_percentage to the list
     - Args:
@@ -527,7 +526,7 @@ def append_rank(lnr):
     return lnr
 
 '''
-    ranker: Appends rank and percentages at different aggregate levels.
+    ranker: Appends flow rank and percentages at different aggregate levels.
     - Args:
         - rank_type= String. Argument option for type of ranking to conduct. Currently only per_hub.
         - tdhn= Dict of corpus. Traverses the 'info_hub'
@@ -542,11 +541,12 @@ def ranker(tdhn, **kwargs):
                 # Write list of hub's nodes and flow scores as a list of tuples
                 list_nodes_unranked = []
                 for n in tdhn[p]['info_hub'][h]:
-                    name = n['name']
-                    flow = n['score']
-                    total_hub_flow = n['total_hub_flow_score']
-                    listed_rank = [ name, format(flow, 'f'), format(total_hub_flow, 'f') ]
-                    list_nodes_unranked.append(listed_rank)
+                    if 'total_hub_flow_score' in n:
+                        name = n['name']
+                        flow = n['score']
+                        total_hub_flow = n['total_hub_flow_score']
+                        listed_rank = [ name, format(flow, 'f'), format(total_hub_flow, 'f') ]
+                        list_nodes_unranked.append(listed_rank)
                 # Rank the list
                 list_nodes_ranked = sorted(list_nodes_unranked, key=lambda x: x[1], reverse=True)
                 list_nodes_appended_ranks = append_rank(list_nodes_ranked)
@@ -567,7 +567,8 @@ def ranker(tdhn, **kwargs):
             - file_type= String. 'map' or 'ftree' file type designation
             - dict_map= Dict of map files
             - mod_sample_size= Integer. Number of modules to sample
-            - hub_sample_size= Integer. number of nodes to sample for "hub" of each module
+            - hub_sample_size= Integer. number of nodes to sample for "hub" of each module.
+                Or -1 to capture all nodes in hub.
         - Output:
             - dict_map= Dict with new 'info_hub' key hydrated with hubs
 '''
@@ -602,6 +603,7 @@ def infomap_hub_maker(dict_map, **kwargs):
                 node = node_match[0][1:]
                 name = name_match[0][1:-1]
                 score = score_match[0]
+                score = float(score)
                 hub_list = []
 
                 # Retrieve first n modules
@@ -619,7 +621,7 @@ def infomap_hub_maker(dict_map, **kwargs):
                             'score': score
                          }]
                     })
-                elif mod in dict_hubs and len(dict_hubs[mod]) >= 1 and len(dict_hubs[mod]) < 10:
+                elif mod in dict_hubs and len(dict_hubs[mod]) >= 1 and (len(dict_hubs[mod]) < kwargs['hub_sample_size'] or kwargs['hub_sample_size'] == -1):
                     hub_list = {
                         'node': node,
                         'name': name,
@@ -661,7 +663,7 @@ def infomap_hub_maker(dict_map, **kwargs):
                             'score': flow
                          }]
                     })
-                elif mod in dict_hubs and len(dict_hubs[mod]) >= 1 and len(dict_hubs[mod]) < kwargs['hub_sample_size'] and node != '0 "':
+                elif mod in dict_hubs and len(dict_hubs[mod]) >= 1 and (len(dict_hubs[mod]) < kwargs['hub_sample_size'] or kwargs['hub_sample_size'] == -1) and node != '0 "':
                     hub_list = {
                         'node': node,
                         'name': name,
@@ -703,7 +705,7 @@ def get_period_flow_total(lpt):
     - Args:
         - dhn= Dict of hubs returned from info_hub_maker
 '''
-def score_summer(dhn):
+def score_summer(dhn, **kwargs):
     for p in dhn:
         list_period_totals = []
         for h in dhn[p]['info_hub']:
@@ -711,8 +713,11 @@ def score_summer(dhn):
             total_hub_flow = get_score_total(dhn[p]['info_hub'][h])
             
             # Update hub with flow score total for each node in hub
+            h_hub_sample = 0
             for ln in dhn[p]['info_hub'][h]:
-                ln.update({'total_hub_flow_score': total_hub_flow})
+                if h_hub_sample < kwargs['hub_sample_size']:
+                    ln.update({'total_hub_flow_score': total_hub_flow})
+                    h_hub_sample = h_hub_sample+1
             
             # Append hub total to list for period tally later
             list_period_totals.append(total_hub_flow)
@@ -720,8 +725,11 @@ def score_summer(dhn):
         # Update each node in each hub in each period with period flow scores
         for ht in dhn[p]['info_hub']:
             # Update hub with flow score total for each node in hub
+            ht_hub_sample = 0
             for pln in dhn[p]['info_hub'][ht]:
-                pln.update({'total_period_flow_score': pt})
+                if ht_hub_sample < kwargs['hub_sample_size']:
+                    pln.update({'total_period_flow_score': pt})
+                    ht_hub_sample = ht_hub_sample+1
     return dhn
 
 '''
@@ -738,10 +746,11 @@ def output_infomap_hub(**kwargs):
     for ih in kwargs['dict_hub']:
         for i in kwargs['dict_hub'][ih]['info_hub']:
             for h in kwargs['dict_hub'][ih]['info_hub'][i]:
-                temp_hub = [int(ih), int(i)]
-                for c in kwargs['header'][2:]:
-                    temp_hub.append(h[c])
-                hubs.append(temp_hub)
+                if len(h) > kwargs['filtered_header_length']: #filter out unwanted
+                    temp_hub = [int(ih), int(i)]
+                    for c in kwargs['header'][2:]:
+                        temp_hub.append(h[c])
+                    hubs.append(temp_hub)
     df_info_hubs = pd.DataFrame(hubs, columns=kwargs['header'])
 
     df_info_hubs.to_csv(join(kwargs['path'], kwargs['file']),
