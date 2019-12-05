@@ -21,6 +21,7 @@
 # Warning: nttc performs no custom error-handling, so make sure your inputs are formatted properly! If you have questions, please let me know via email.
 from os import listdir
 from os.path import isfile, join
+from pprint import pprint
 import arrow
 import ast
 import csv
@@ -501,6 +502,7 @@ def batch_map(**kwargs):
         })
     
     return map_dicts
+
 '''
     append_percentages: Helper function for ranker(). Appends each node's total_percentage to the list
     - Args:
@@ -1319,6 +1321,17 @@ def merge_rts_mentions(fo):
         df_merged = pd.concat(dfs, axis=1).reset_index(drop=True)
         fo[f].full_hub = df_merged.reset_index(drop=True)
     return fo
+
+'''
+    print_keywords: Takes in a saturated dict of communities
+        and their topic model component data (tmsd), then pretty
+        prints it out to the terminal/notebook for quick access.
+'''
+def print_keywords(tmsd):
+    for c in tmsd:
+        print('COMMUNITY', c)
+        pprint(tmsd[c].model.print_topics())
+        print('\n\n')
 
 ##################################################################
 
