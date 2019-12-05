@@ -20,13 +20,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 ## System requirements
 
-* **IMPORTANT**: [tsm](https://github.com/dfreelon/TSM) - Current version on Github, not Python Package Index, so you will need to manually download and install from Github (as of 08/23/19).
-  1. Download the repo from the link above to your computer.
-  2. Open a Terminal and change the directory to ```TSM-master```: ```cd path/to/TSM-master```
-  3. Once the Terminal is in the root of the ```TSM-master``` folder, be sure to first verify that that tsm is not already installed on your computer: ```sudo pip3 uninstall tsm```. 
-     - NOTE: If it is not installed, it will tell you. If it is installed, it will uninstall it. Also, if you have permissions on this folder, there's no need to use ```sudo```.
-  4. Still inside of this root folder, ```TSM-master```, install this version: ```sudo pip3 install .```
-  5. ```pip``` will tell you if the package has successfully been installed or not. If not, research the error.
+* [tsm](https://github.com/dfreelon/TSM)
 * [nltk](https://www.nltk.org/)
 * networkx
 * matplot
