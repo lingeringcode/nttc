@@ -158,12 +158,14 @@ It also contains functions that enable you to isolate and output a CSV file with
       - ``file``= Output file name
 * ```sampling_module_hubs```: Compares hub set with tweet data to ultimately output sampled tweets with hub information.
   * Args:
-    * period_dates: Dict of lists that include dates for each period of the corpus
-    * df_all_tweets: Pandas DataFrame of tweets
-    * df_hubs: Pandas DataFrame of infomapped hubs
-    * top_rts_sample: Integer of desired sample size of sorted top tweets (descending order)
-    * hub_sample: Integer of desired sample size to output
-    * columns: List of column names; each as a String. **Must match column names from tweet and hub data sets
+    * ```period_dates```: Dict of lists that include dates for each period of the corpus
+    * ```period_check```: String for option: Check against 'single' or 'multiple'
+    * ```period_num```: Integer. If period_check == 'single', provide integer of period number.
+    * ```df_all_tweets```: Pandas DataFrame of tweets
+    * ```df_hubs```: Pandas DataFrame of infomapped hubs
+    * ```top_rts_sample```: Integer of desired sample size of sorted top tweets (descending order)
+    * ```hub_sample```: Integer of desired sample size to output
+    * ```columns```: List of column names; each as a String. **Must match column names from tweet and hub data sets
   * Returns DataFrame of top sampled tweets
 * ```add_infomap```: Helper function for ```sampling_module_hubs```. It cross-references the sampled .
   * Args:

@@ -820,6 +820,8 @@ def add_infomap(dft, dfh, period_num):
         Assumes you have sorted tweets in descending order by number of RTs.
     - Args:
         - period_dates: Dict of lists that include dates for each period of the corpus
+        - period_check: String for option: Check against 'single' or 'multiple'
+        - period_num: Integer. If period_check == 'single', provide integer of period number.
         - df_all_tweets: Pandas DataFrame of tweets
         - df_hubs: Pandas DataFrame of infomapped hubs
         - top_rts_sample: Integer of desired sample size of sorted top tweets (descending order)
@@ -829,28 +831,51 @@ def add_infomap(dft, dfh, period_num):
 '''
 def sampling_module_hubs(**kwargs):
     module_output = pd.DataFrame([], columns=kwargs['columns'])
-    for p in kwargs['period_dates']:
+    if kwargs['period_check'] == 'multiple':
+        for p in kwargs['period_dates']:
+            # 1. Use dates to find all tweets in period
+            df_p = kwargs['df_all_tweets'][kwargs['df_all_tweets']['date'].isin(kwargs['period_dates'][p])]
+            # 2. Sort tweets with top RT'd tweets in descending order
+            df_top_rts = df_p.sort_values(['retweets_count'], ascending=[False])
+            # 3. Save only top X sample
+            df_output = df_top_rts[:kwargs['top_rts_sample']]
+            
+            print('Sample of top', 
+                kwargs['top_rts_sample'],
+                'RT\'d tweets written and sorted.\nNow writing new dataframe with combined hub information, which may take some time.')
+            
+            # 4. Send df_output, sliced_hub, and period_num to revised 
+            sliced_hub = kwargs['df_hubs'][kwargs['df_hubs']['period'] == int(p)].copy()
+            period_num = int(p)
+            new_rows = add_infomap(
+                dft=df_output,
+                dfh=sliced_hub,
+                period_num=period_num
+            )
+            module_output = module_output.append(new_rows)
+            print('Completed period', period_num, 'tweets.\n\n')
+    elif kwargs['period_check'] == 'single':
         # 1. Use dates to find all tweets in period
-        df_p = kwargs['df_all_tweets'][kwargs['df_all_tweets']['date'].isin(kwargs['period_dates'][p])]
+        df_p = kwargs['df_all_tweets'][kwargs['df_all_tweets']['date'].isin(kwargs['period_dates'])]
         # 2. Sort tweets with top RT'd tweets in descending order
         df_top_rts = df_p.sort_values(['retweets_count'], ascending=[False])
         # 3. Save only top X sample
         df_output = df_top_rts[:kwargs['top_rts_sample']]
         
         print('Sample of top', 
-              kwargs['top_rts_sample'],
-              'RT\'d tweets written and sorted.\nNow writing new dataframe with combined hub information, which may take some time.')
+            kwargs['top_rts_sample'],
+            'RT\'d tweets written and sorted.\nNow writing new dataframe with combined hub information, which may take some time.')
         
-        # 4. Send df_output, sliced_hub, and period_num to revised 
-        sliced_hub = kwargs['df_hubs'][kwargs['df_hubs']['period'] == int(p)].copy()
-        period_num = int(p)
+        # 4. Send df_output, sliced_hub, and kwargs['period_num'] to revised 
+        sliced_hub = kwargs['df_hubs'][kwargs['df_hubs']['period'] == kwargs['period_num']].copy()
         new_rows = add_infomap(
             dft=df_output,
             dfh=sliced_hub,
-            period_num=period_num
+            period_num=kwargs['period_num']
         )
         module_output = module_output.append(new_rows)
-        print('Completed period', period_num, 'tweets.\n\n')
+        print('Completed period', kwargs['period_num'], 'tweets.\n\n')
+    
     return module_output
 
 '''
