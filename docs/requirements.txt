@@ -1,0 +1,11 @@
+tsm
+nltk
+networkx
+matplot
+pandas
+numpy
+emoji
+pprint
+gensim
+spacy
+re
