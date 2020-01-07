@@ -39,41 +39,47 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 ```nttc``` initializes and uses the following objects:
 
-* ```periodObject```: Object with properties that store per Community subgraph properties. Object properties as follows:
-    - ```.comm_nums```: List of retrieved community numbers from the imported nodes data
-    - ```.subgraphs_dict```: Dictionary of period's community nodes and edges data.
+### ```periodObject```
 
-* ```communitiesObject```: Object with properties that generate topic model and also help you name them more easily. Object properties are as follows:
-    - ```.content_slice```: dict of a sample community's content segments
-    - ```.split_docs```: split version of sampled tweets
-    - ```.id2word```: dict version of split_docs
-    - ```.texts```: Listified version of sample
-    - ```.corpus```: List of sample terms with frequency counts
-    - ```.readme```: If desired, printout readable version
-    - ```.model```: Stores the LDA topic model object
-    - ```.perplexity```: Computed perplexity score of topic model
-    - ```.coherence```: Computed coherence score of topic model
-    - ```.top_rts```: Sample of top 10 Rters and RTs for the community
-    - ```.top_mentions```: Sample of top 10 people mentioned
-    - ```.full_hub```: Combined version of top_rts and top_mentions as a DataFrame
+Object with properties that store per Community subgraph properties. Object properties as follows:
+  - ```.comm_nums```: List of retrieved community numbers from the imported nodes data
+  - ```.subgraphs_dict```: Dictionary of period's community nodes and edges data.
+
+### ```communitiesObject```
+
+Object with properties that generate topic model and also help you name them more easily. Object properties are as follows:
+  - ```.content_slice```: dict of a sample community's content segments
+  - ```.split_docs```: split version of sampled tweets
+  - ```.id2word```: dict version of split_docs
+  - ```.texts```: Listified version of sample
+  - ```.corpus```: List of sample terms with frequency counts
+  - ```.readme```: If desired, printout readable version
+  - ```.model```: Stores the LDA topic model object
+  - ```.perplexity```: Computed perplexity score of topic model
+  - ```.coherence```: Computed coherence score of topic model
+  - ```.top_rts```: Sample of top 10 Rters and RTs for the community
+  - ```.top_mentions```: Sample of top 10 people mentioned
+  - ```.full_hub```: Combined version of top_rts and top_mentions as a DataFrame
     
-* ```communityGroupsObject```: Object with properties that analyze community likeness scores and then groups alike communities across periods. Object properties as follows:
-    - ```.best_matches_mentions```: Dictionary of per Period with per Period hub top_mentions (users) values as lists
-    - ```.best_matches_rters```: Dictionary of per Period with per Period hub top_rters (users) values as lists
-    - ```.sorted_filtered_comms```: List of tuples, where each tuple has 1) the tested pair of communities between 2 periods, and 2) their JACC score. Example: ```('1_0x4_0', 0.4286)```
-    - ```.groups_mentions```: A list of sets, where each set are alike mention groups across periods, based on your given JACC threshold:<pre>[{'1_8', '2_18'},
- {'3_7', '4_2'},
- {'7_11', '8_0'},
- {'10_11', '4_14', '5_14', '6_7', '9_11'},
- {'1_0', '2_11', '3_5', '4_0', '5_5', '6_12'},
- {'10_10', '1_9', '2_3', '3_3', '4_6', '5_2', '6_3', '7_0', '8_2', '9_4'},
- {'10_6', '1_2', '2_4', '3_4', '4_13', '5_6', '6_5', '7_4', '8_7', '9_0'},
- {'10_0', '1_12', '2_6', '3_0', '4_5', '5_7', '6_6', '7_3', '8_9', '9_5'}]</pre>
-    - ```.groups_rters```: A list of sets, where each set are alike RTer groups across periods, based on your given JACC threshold:<pre>[{'1_8', '2_18', '5_14'},
- {'10_20', '5_18'},
- {'5_2', '6_3', '7_0'},
- {'5_1', '7_1'},
- {'10_12', '2_3', '3_13', '6_8', '7_5', '8_4', '9_1'}]</pre>
+### ```communityGroupsObject```
+
+Object with properties that analyze community likeness scores and then groups alike communities across periods. Object properties as follows:
+  - ```.best_matches_mentions```: Dictionary of per Period with per Period hub top_mentions (users) values as lists
+  - ```.best_matches_rters```: Dictionary of per Period with per Period hub top_rters (users) values as lists
+  - ```.sorted_filtered_comms```: List of tuples, where each tuple has 1) the tested pair of communities between 2 periods, and 2) their JACC score. Example: ```('1_0x4_0', 0.4286)```
+  - ```.groups_mentions```: A list of sets, where each set are alike mention groups across periods, based on your given JACC threshold:<pre>[{'1_8', '2_18'},
+{'3_7', '4_2'},
+{'7_11', '8_0'},
+{'10_11', '4_14', '5_14', '6_7', '9_11'},
+{'1_0', '2_11', '3_5', '4_0', '5_5', '6_12'},
+{'10_10', '1_9', '2_3', '3_3', '4_6', '5_2', '6_3', '7_0', '8_2', '9_4'},
+{'10_6', '1_2', '2_4', '3_4', '4_13', '5_6', '6_5', '7_4', '8_7', '9_0'},
+{'10_0', '1_12', '2_6', '3_0', '4_5', '5_7', '6_6', '7_3', '8_9', '9_5'}]</pre>
+  - ```.groups_rters```: A list of sets, where each set are alike RTer groups across periods, based on your given JACC threshold:<pre>[{'1_8', '2_18', '5_14'},
+{'10_20', '5_18'},
+{'5_2', '6_3', '7_0'},
+{'5_1', '7_1'},
+{'10_12', '2_3', '3_13', '6_8', '7_5', '8_4', '9_1'}]</pre>
 
 ## General Functions
 
@@ -91,17 +97,41 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 For example, it takes an edge list with usernames (username1, username2), and it translates it into the necessary Pajek file format (.net).
 
-* ```listify_unique_users```: Take edge list and create a list of unique users
-* ```check_protected_dataype_names```: Verify that edge names don't conflict with Python protected datatypes. If they do, append 2 underscores to its end and log it.
-* ```index_unique_users```: Take list of unique users and append IDs
-* ```target_part_lookup```: Lookup target in unique list and return to netify_edges()
-* ```write_net_dict```: Writes s Dict of vertices (nodes) and arcs (edges) in preperation for formatting it into the Pajek file format (.net). It returns a dictionary akin to the following:<pre>p_dict = {
+### ```listify_unique_users```
+
+Take edge list (List of lists [source, target]) and create a list of unique users.
+
+### ```check_protected_dataype_names```
+
+Verify that edge names don't conflict with Python protected datatypes. If they do, append 2 underscores to its end and log it.
+
+### ```index_unique_users```
+
+Take list of unique users and append IDs
+
+### ```target_part_lookup```
+
+Lookup target in unique list and return to netify_edges()
+
+### ```write_net_dict```
+
+Writes s Dict of vertices (nodes) and arcs (edges) in preperation for formatting it into the Pajek file format (.net). It returns a dictionary akin to the following:<pre>p_dict = {
         'vertices': verts, # A List of vertices (nodes) with an ID [1, user1]
         'arcs': arcs # A list of arcs (edges) [source, target]
     }</pre>
-* ```vert_lookup```: Helper function for ```write_net_dict```. It finds the matching username and returns the period_based ID.
-* ```netify_edges```: Accepts list of lists (edges) and replaces the usernames with their unique IDs. This prepares output for the infomap code system.
-* ```write_net_txt```: Outputs .txt file with edges in a .net format for the [Infomap](https://www.mapequation.org/) system:
+
+
+### ```vert_lookup```
+
+Helper function for ```write_net_dict```. It finds the matching username and returns the period_based ID.
+
+### ```netify_edges```
+
+Accepts list of lists (edges) and replaces the usernames with their unique IDs. This prepares output for the infomap code system.
+
+### ```write_net_txt```
+
+Outputs .txt file with edges in a .net format for the [Infomap](https://www.mapequation.org/) system:
   <pre>source target [optional weight]
   1 2
   2 4
@@ -180,89 +210,6 @@ It also contains functions that enable you to isolate and output a CSV file with
     * file_ext: String of desired filename extension pattern
     * period_path: String of desired path to save the files
   * Returns nothing
-
-Create samples of tweets based on the hubs from each detected community:
-
-1. Create infomap hubs from ```.ftree``` files:
-  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_processing.png" />
-2. Create a sample of tweet data cross-referenced with the infomapped hub file:
-  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_sampling.png" />
-3. Output sample in a batch based on the number of periods:
-  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_sampling_output.png" />
-
-Create a sample of hubs ranked by their information flow scores:
-
-
-```python
-import nttc
-
-# 1. Retrieve directory of .map files and save each line of the file within a list of lists to per Period Dict
-map_path = '../infomap/output/nets/maps'
-dict_map = nttc.batch_map(regex=r"\d{1,2}", path=map_path, file_type='map')
-
-print(
-    '1.\nIndices: ',
-    dict_map['1']['indices'],
-     dict_map['2']['indices'],
-    '\n\nFirst 5 file lines: ',
-    dict_map['1']['lines'][:5],
-    '\n\n'
-)
-
-# 2. Take full listified .map file and write per Period per Module hubs as a Dict
-new_dict = dict_map
-dh = nttc.infomap_hub_maker(new_dict, file_type='map', mod_sample_size=10, hub_sample_size=-1)
-print(
-    '2.\nSample hub: ',
-    dh['10']['info_hub']['1'][:10]
-)
-
-# 3. Updated hubs with scores
-dhn = dh
-totals_dhn = nttc.score_summer(dhn, hub_sample_size=5)
-print(
-    '\n3. Updated hubs with scores: ',
-    totals_dhn['1']['info_hub']['1'][:20]
-)
-
-# 4. Ranked hubs with percentages
-tdhn = totals_dhn
-ranked_tdhn = nttc.ranker(tdhn, rank_type='per_hub')
-print(
-    '\n4. Ranked hubs with percentages:\n\n',
-    ranked_tdhn['1']['info_hub']['1'][:20]
-)
-
-# 5. Output .map hubs as a CSV
-header = ['period', 'info_module', 'node', 'name', 'score','total_hub_flow_score','total_period_flow_score','percentage_total','spot','top_name']
-nttc.output_infomap_hub(
-    header=header, 
-    filtered_header_length=4,
-    dict_hub=rtdhn, 
-    path='../infomap/output/nets/maps/csv', 
-    file='infomap_hubs_100_5.csv')
-
-```
-Output:
-```
-1.
-Indices:  {'modules': [7, 5388], 'nodes': [5390, 55909], 'links': [55911, 86141]} {'modules': [7, 5100], 'nodes': [5102, 50554], 'links': [50556, 73404]} 
-
-First 5 file lines:  ['# modules: 5382', '# modulelinks: 30231', '# nodes: 50520', '# links: 110923', '# codelength: 11.5932'] 
-
-
-2.
-Sample hub:  [{'node': '1', 'name': 'realdonaldtrump', 'score': 0.135007}, {'node': '2', 'name': 'speakerpelosi', 'score': 0.012912}, {'node': '3', 'name': 'gop', 'score': 0.008224}, {'node': '4', 'name': 'senschumer', 'score': 0.002308}, {'node': '5', 'name': 'themarkpantano', 'score': 1.8e-05}, {'node': '6', 'name': 'joelpollak', 'score': 1.8e-05}, {'node': '7', 'name': 'repkevinbrady', 'score': 1.6e-05}, {'node': '8', 'name': 'bike_at_w4', 'score': 1.3e-05}, {'node': '9', 'name': 'busyelves', 'score': 1.3e-05}, {'node': '10', 'name': 'jorgeramosnews', 'score': 1.3e-05}]
-
-3. Updated hubs with scores:  [{'node': '1', 'name': 'realdonaldtrump', 'score': 0.088483, 'total_hub_flow_score': 0.24477100000007698, 'total_period_flow_score': 0.45748200000006645}, {'node': '2', 'name': 'dhsgov', 'score': 0.076302, 'total_hub_flow_score': 0.24477100000007698, 'total_period_flow_score': 0.45748200000006645}, {'node': '3', 'name': 'anncoulter', 'score': 0.002534, 'total_hub_flow_score': 0.24477100000007698, 'total_period_flow_score': 0.45748200000006645}, {'node': '4', 'name': 'patriotlexi', 'score': 4.2e-05, 'total_hub_flow_score': 0.24477100000007698, 'total_period_flow_score': 0.45748200000006645}, {'node': '5', 'name': 'realdrolmo', 'score': 1.5e-05, 'total_hub_flow_score': 0.24477100000007698, 'total_period_flow_score': 0.45748200000006645}, {'node': '6', 'name': 'sickoftheswamp', 'score': 1.5e-05}, {'node': '7', 'name': 'rippdemup', 'score': 1.5e-05}, {'node': '8', 'name': 'flying4jc', 'score': 1.5e-05}, {'node': '9', 'name': 'theresamechele', 'score': 1.5e-05}, {'node': '10', 'name': 'chadpergram', 'score': 1.5e-05}, {'node': '11', 'name': 'medicalellen', 'score': 1.5e-05}, {'node': '12', 'name': 'shelley2021', 'score': 1.4e-05}, {'node': '13', 'name': 'lisamei62', 'score': 1.4e-05}, {'node': '14', 'name': 'angeloraygomez', 'score': 1.4e-05}, {'node': '15', 'name': 'john_kissmybot', 'score': 1.4e-05}, {'node': '16', 'name': '1gigisims', 'score': 1.4e-05}, {'node': '17', 'name': 'betzi1l', 'score': 1.4e-05}, {'node': '18', 'name': 'safety_canada', 'score': 1.4e-05}, {'node': '19', 'name': 'jennyjlfortn632', 'score': 1.4e-05}, {'node': '20', 'name': 'michaelbeatty3', 'score': 1.4e-05}]
-
-4. Ranked hubs with percentages:
-
- [{'node': '1', 'name': 'realdonaldtrump', 'score': 0.088483, 'total_hub_flow_score': 0.24477100000007698, 'total_period_flow_score': 0.45748200000006645, 'percentage_total': 1.0, 'spot': 1}, {'node': '2', 'name': 'dhsgov', 'score': 0.076302, 'total_hub_flow_score': 0.24477100000007698, 'total_period_flow_score': 0.45748200000006645, 'percentage_total': 0.3117281050451238, 'spot': 2}, {'node': '3', 'name': 'anncoulter', 'score': 0.002534, 'total_hub_flow_score': 0.24477100000007698, 'total_period_flow_score': 0.45748200000006645, 'percentage_total': 0.010352533592623309, 'spot': 3}, {'node': '4', 'name': 'patriotlexi', 'score': 4.2e-05, 'total_hub_flow_score': 0.24477100000007698, 'total_period_flow_score': 0.45748200000006645, 'percentage_total': 0.000171588954573867, 'spot': 4}, {'node': '5', 'name': 'realdrolmo', 'score': 1.5e-05, 'total_hub_flow_score': 0.24477100000007698, 'total_period_flow_score': 0.45748200000006645, 'percentage_total': 6.12817694906668e-05, 'spot': 5}, {'node': '6', 'name': 'sickoftheswamp', 'score': 1.5e-05}, {'node': '7', 'name': 'rippdemup', 'score': 1.5e-05}, {'node': '8', 'name': 'flying4jc', 'score': 1.5e-05}, {'node': '9', 'name': 'theresamechele', 'score': 1.5e-05}, {'node': '10', 'name': 'chadpergram', 'score': 1.5e-05}, {'node': '11', 'name': 'medicalellen', 'score': 1.5e-05}, {'node': '12', 'name': 'shelley2021', 'score': 1.4e-05}, {'node': '13', 'name': 'lisamei62', 'score': 1.4e-05}, {'node': '14', 'name': 'angeloraygomez', 'score': 1.4e-05}, {'node': '15', 'name': 'john_kissmybot', 'score': 1.4e-05}, {'node': '16', 'name': '1gigisims', 'score': 1.4e-05}, {'node': '17', 'name': 'betzi1l', 'score': 1.4e-05}, {'node': '18', 'name': 'safety_canada', 'score': 1.4e-05}, {'node': '19', 'name': 'jennyjlfortn632', 'score': 1.4e-05}, {'node': '20', 'name': 'michaelbeatty3', 'score': 1.4e-05}]
-
-5. infomap_hubs_100_5.csv  written to  ../infomap/output/nets/maps/csv
-
-```
 
 ## periodObject Functions
 

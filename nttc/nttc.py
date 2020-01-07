@@ -330,8 +330,8 @@ def listify_unique_users(**kwargs):
     user_list = []
     status_counter = 0
     index = 0
-    print('Starting the listifying process. This may take some time, depending upong the file size.')
-    for source, target in kwargs['df_edges']:
+    print('Starting the listifying process. This may take some time, depending upon the file size.')
+    for source, target in kwargs['edges']:
         if status_counter == 50000:
             print(index, 'entries processed.')
             status_counter = 0
