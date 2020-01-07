@@ -1,13 +1,6 @@
 # Infomap Data-Processing Examples
 
-Create samples of tweets based on the hubs from each detected community:
-
-1. Create infomap hubs from ```.ftree``` files:
-  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_processing.png" />
-2. Create a sample of tweet data cross-referenced with the infomapped hub file:
-  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_sampling.png" />
-3. Output sample in a batch based on the number of periods:
-  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_sampling_output.png" />
+## Sample ranked hubs
 
 Create a sample of hubs ranked by their information flow scores:
 
@@ -81,3 +74,14 @@ Sample hub:  [{'node': '1', 'name': 'realdonaldtrump', 'score': 0.135007}, {'nod
 5. infomap_hubs_100_5.csv  written to  ../infomap/output/nets/maps/csv
 
 ```
+
+## Sample tweets based on hubs
+
+Create samples of tweets based on the hubs from each detected community:
+
+1. Create infomap hubs from ```.ftree``` files:
+  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_processing.png" />
+2. Create a sample of tweet data cross-referenced with the infomapped hub file:
+  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_sampling.png" />
+3. Output sample in a batch based on the number of periods:
+  <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/infomap_hub_sampling_output.png" />

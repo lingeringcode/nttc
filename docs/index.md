@@ -211,6 +211,7 @@ It also contains functions that enable you to isolate and output a CSV file with
     * period_path: String of desired path to save the files
   * Returns nothing
 
+
 ## periodObject Functions
 
 * ```get_comm_nums```: Filters unique community column values into List
