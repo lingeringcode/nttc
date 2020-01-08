@@ -42,32 +42,35 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 ### ```periodObject```
 
 Object with properties that store per Community subgraph properties. Object properties as follows:
-  - ```.comm_nums```: List of retrieved community numbers from the imported nodes data
-  - ```.subgraphs_dict```: Dictionary of period's community nodes and edges data.
+
+- ```.comm_nums```: List of retrieved community numbers from the imported nodes data
+- ```.subgraphs_dict```: Dictionary of period's community nodes and edges data.
 
 ### ```communitiesObject```
 
 Object with properties that generate topic model and also help you name them more easily. Object properties are as follows:
-  - ```.content_slice```: dict of a sample community's content segments
-  - ```.split_docs```: split version of sampled tweets
-  - ```.id2word```: dict version of split_docs
-  - ```.texts```: Listified version of sample
-  - ```.corpus```: List of sample terms with frequency counts
-  - ```.readme```: If desired, printout readable version
-  - ```.model```: Stores the LDA topic model object
-  - ```.perplexity```: Computed perplexity score of topic model
-  - ```.coherence```: Computed coherence score of topic model
-  - ```.top_rts```: Sample of top 10 Rters and RTs for the community
-  - ```.top_mentions```: Sample of top 10 people mentioned
-  - ```.full_hub```: Combined version of top_rts and top_mentions as a DataFrame
+
+- ```.content_slice```: dict of a sample community's content segments
+- ```.split_docs```: split version of sampled tweets
+- ```.id2word```: dict version of split_docs
+- ```.texts```: Listified version of sample
+- ```.corpus```: List of sample terms with frequency counts
+- ```.readme```: If desired, printout readable version
+- ```.model```: Stores the LDA topic model object
+- ```.perplexity```: Computed perplexity score of topic model
+- ```.coherence```: Computed coherence score of topic model
+- ```.top_rts```: Sample of top 10 Rters and RTs for the community
+- ```.top_mentions```: Sample of top 10 people mentioned
+- ```.full_hub```: Combined version of top_rts and top_mentions as a DataFrame
     
 ### ```communityGroupsObject```
 
 Object with properties that analyze community likeness scores and then groups alike communities across periods. Object properties as follows:
-  - ```.best_matches_mentions```: Dictionary of per Period with per Period hub top_mentions (users) values as lists
-  - ```.best_matches_rters```: Dictionary of per Period with per Period hub top_rters (users) values as lists
-  - ```.sorted_filtered_comms```: List of tuples, where each tuple has 1) the tested pair of communities between 2 periods, and 2) their JACC score. Example: ```('1_0x4_0', 0.4286)```
-  - ```.groups_mentions```: A list of sets, where each set are alike mention groups across periods, based on your given JACC threshold:<pre>[{'1_8', '2_18'},
+
+- ```.best_matches_mentions```: Dictionary of per Period with per Period hub top_mentions (users) values as lists
+- ```.best_matches_rters```: Dictionary of per Period with per Period hub top_rters (users) values as lists
+- ```.sorted_filtered_comms```: List of tuples, where each tuple has 1) the tested pair of communities between 2 periods, and 2) their JACC score. Example: ```('1_0x4_0', 0.4286)```
+- ```.groups_mentions```: A list of sets, where each set are alike mention groups across periods, based on your given JACC threshold:<pre>[{'1_8', '2_18'},
 {'3_7', '4_2'},
 {'7_11', '8_0'},
 {'10_11', '4_14', '5_14', '6_7', '9_11'},
@@ -75,7 +78,7 @@ Object with properties that analyze community likeness scores and then groups al
 {'10_10', '1_9', '2_3', '3_3', '4_6', '5_2', '6_3', '7_0', '8_2', '9_4'},
 {'10_6', '1_2', '2_4', '3_4', '4_13', '5_6', '6_5', '7_4', '8_7', '9_0'},
 {'10_0', '1_12', '2_6', '3_0', '4_5', '5_7', '6_6', '7_3', '8_9', '9_5'}]</pre>
-  - ```.groups_rters```: A list of sets, where each set are alike RTer groups across periods, based on your given JACC threshold:<pre>[{'1_8', '2_18', '5_14'},
+- ```.groups_rters```: A list of sets, where each set are alike RTer groups across periods, based on your given JACC threshold:<pre>[{'1_8', '2_18', '5_14'},
 {'10_20', '5_18'},
 {'5_2', '6_3', '7_0'},
 {'5_1', '7_1'},
