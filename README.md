@@ -2,6 +2,8 @@
 by Chris Lindgren <chris.a.lindgren@gmail.com>
 Distributed under the BSD 3-clause license. See LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause for details.
 
+**Documentation**: [https://nttc.readthedocs.io/en/latest/](https://nttc.readthedocs.io/en/latest/)
+
 ## Overview
 
 A set of functions that process and create topic models from a sample of community-detected Twitter networks' tweets. It also analyzes if there are potential persistent community hubs (either/and by top mentioned or top RTers).
