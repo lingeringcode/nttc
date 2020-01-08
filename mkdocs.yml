@@ -1,1 +1,5 @@
-site_name: NTTC (Name That Twitter Community!) - Process and analyze community-detected data
+site_name: NTTC (Name That Twitter Community!)
+nav:
+    - Home: index.md
+    - Infomap Examples: infomap-examples.md
+theme: readthedocs
