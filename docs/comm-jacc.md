@@ -1,5 +1,7 @@
 # Score &amp; visualize community-hub likeness
 
+These methods assume that you understand what your top targets mean within the scope of your research study and broader corpus. For example, if you are studying a rather homogenous and stable group(s) over time, then the top targets can begin to isolate who were important actors being targeted and discussed by these groups, etc. If the groups are heterogenous, then the top targeted maintains the status of who are important actors among these groups, but that doesn't mean that one community hub from period 1 is of similar homiphily as the targets in period 2, for example. Period one's community could be of a conservative partisanship, for instance, while period two's community could be of liberal partisanship.
+
 ## Analyze and return a list of alike communities across periods based on top targets:
 
 1. Init a new ```matchingCommunitiesObject``` and write a dict of users with ```matching_dict_processor()``` to send to ```match_maker()```.
