@@ -1,5 +1,6 @@
 site_name: NTTC (Name That Twitter Community!)
 nav:
     - Home: index.md
+    - Topic-Modeling: tm-comm-data.md
     - Infomap Examples: infomap-examples.md
 theme: readthedocs
