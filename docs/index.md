@@ -307,10 +307,6 @@ It also contains functions that enable you to isolate and output a CSV file with
     - Args: Accepts the group dict from group_reader().
     - Returns: A dict of all unique period_community elements (2 or more) found to be similar.
 
-**Plot community similarity indices (Jaccard's Co-efficient)**
-
-<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/plot_comm_pairs.png" />
-
 **Analyze and return a list of alike communities across periods**
 
 1. Init a new ```matchingCommunitiesObject``` and write a dict of users with ```matching_dict_processor()``` to send to ```match_maker()```.
@@ -319,6 +315,10 @@ It also contains functions that enable you to isolate and output a CSV file with
     <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/matching_sorted_filtered_comms.png" />
 3. Analyze the intersections and unions of, in this case, the ```sorted_filtered_mentions```' values and output a list of sets, where each set includes alike communities across periods in the corpus.
     <img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/matching_groups.png" />
+
+**Plot community similarity indices (Jaccard's Co-efficient)**
+
+<img src="https://github.com/lingeringcode/nttc/raw/master/assets/images/plot_comm_pairs.png" />
 
 **Process and visualize alike communities across periods**
 
