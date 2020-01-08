@@ -3,4 +3,5 @@ nav:
     - Home: index.md
     - Topic-Modeling: tm-comm-data.md
     - Infomap Examples: infomap-examples.md
+    - Community Likeness: comm-jacc.md
 theme: readthedocs
