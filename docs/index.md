@@ -1,6 +1,3 @@
-<style>
-  .container,.bs-sidebar{margin-top:100px}
-</style>
 # NTTC (Name That Twitter Community!): Process and analyze community-detected data
 by Chris Lindgren <chris.a.lindgren@gmail.com>
 Distributed under the BSD 3-clause license. See LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause for details.
