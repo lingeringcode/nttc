@@ -330,8 +330,8 @@ def listify_unique_users(**kwargs):
     user_list = []
     status_counter = 0
     index = 0
-    print('Starting the listifying process. This may take some time, depending upong the file size.')
-    for source, target in kwargs['df_edges']:
+    print('Starting the listifying process. This may take some time, depending upon the file size.')
+    for source, target in kwargs['edges']:
         if status_counter == 50000:
             print(index, 'entries processed.')
             status_counter = 0
@@ -398,20 +398,25 @@ def read_map_or_ftree(**kwargs):
     - Future version could accept a dict of regex delimiters and parse file base
         on those given parameters.
 '''
-def indices_getter(file_type, lines):
+def indices_getter(file_type, data_type, lines):
     re_modules = r"\*Modules\s\d{1,}"
     re_nodes = r"\*Nodes\s\d{1,}"
     re_links = r"\*Links\s\d{1,}"
-    re_ftree = r"\#\spath\sflow\sname\snode\:"
-    re_ftree_links = r"\*Links\sdirected"
+    re_ftree = r"\#\spath\sflow\sname\snode\:" #Ftree start to modules
+    re_ftree_links_hd_1 = r"\*Links\sdirected" #End of mods, start of first Links
+    re_ftree_links_mods_root = r"\*Links\sroot\s\d{1,}\.\d{1,}\s\d{1,}\s\d{1,}" #root link
+    re_ftree_links_mods = r"\*Links\s\d{1,}\s\d{1,}\.\d{1,}\s\d{1,}\s\d{1,}" #all other links
     index = 0
     mod_index = 0
     node_index = 0
     link_index = 0
+    link_root_mod_index = 0
+    link_mod_index = 0
     mod_list = []
     node_list = []
     link_list = []
     ftree_list = []
+    dict_indices = {}
     
     if file_type == 'map':
         for l in lines:
@@ -437,21 +442,36 @@ def indices_getter(file_type, lines):
             'links': link_list[0]
         }
     if file_type == 'ftree':
-        for l in lines:
-            ftree_match = re.match(re_ftree, l)
-            link_match = re.match(re_ftree_links, l)
+        print('Sorry. Under development right now.')
+        # PARSE ALL MODULES & LINKS
+        # ftree_mods_begin_index = 0
+        # links_begin_index = 0
+        # TODO: Need way to track past link mod # and current to write DICT
+        # prior_link_begin_index = 0
+        # for l in lines:
+        #     ftree_match = re.match(re_ftree, l)
+        #     link_match = re.match(re_ftree_links_hd_1, l)
+        #     link_root_mod_match = re.match(re_ftree_links_mods_root, l)
+        #     link_num_mod_match = re.match(re_ftree_links_mods, l)
             
-            if ftree_match != None:
-                ftree_index = index
-            elif link_match != None:
-                link_index = index
-            index = index + 1
+        #     #If match, assign current index for indices
+        #     if ftree_match != None:
+        #         ftree_mods_begin_index = index
+        #     elif link_match != None:
+        #         links_begin_index = index
+        #     elif link_root_mod_match != None:
+        #         link_root_mod_index = index
+        #     elif link_num_mod_match != None:
+        #         link_mod_index = index
+        #     index = index + 1
         
-        ftree_list.append([ftree_index+1, link_index-1])
-        
-        dict_indices = {
-            'ftree': ftree_list[0]
-        }
+        # # Assign indices to list
+        # ftree_list.append([ftree_mods_begin_index+1, links_begin_index-1])
+        # print(ftree_list)
+        # dict_indices = {
+        #     'ftree_modules': ftree_list[0],
+        #     'ftree_links': ftree_list[1]
+        # }
 
     return dict_indices
 
@@ -464,6 +484,7 @@ def indices_getter(file_type, lines):
     - regex= Regular expression for filename scheme
     - path= String. Path for directory with .map or .ftree files
     - file_type= String. File format type, such as 'map' or 'ftree'
+    - data_type= String. Type of data to parse, such as 'modules' or 'links'
 '''
 def batch_map(**kwargs):
     # Pattern for period number from filename
@@ -490,9 +511,9 @@ def batch_map(**kwargs):
         lines = read_map_or_ftree(path=kwargs['path'], file=f)
 
         if kwargs['file_type'] == 'map':
-            indices = indices_getter(kwargs['file_type'], lines)
+            indices = indices_getter(kwargs['file_type'], kwargs['file_type'], lines)
         elif kwargs['file_type'] == 'ftree':
-            indices = indices_getter(kwargs['file_type'], lines)
+            indices = indices_getter(kwargs['file_type'], kwargs['file_type'], lines)
         
         map_dicts.update({ p: 
                         {
@@ -717,9 +738,12 @@ def score_summer(dhn, **kwargs):
             # Update hub with flow score total for each node in hub
             h_hub_sample = 0
             for ln in dhn[p]['info_hub'][h]:
-                if h_hub_sample < kwargs['hub_sample_size']:
+                if kwargs['hub_sample_size']:
+                    if h_hub_sample < kwargs['hub_sample_size']:
+                        ln.update({'total_hub_flow_score': total_hub_flow})
+                        h_hub_sample = h_hub_sample+1
+                else:
                     ln.update({'total_hub_flow_score': total_hub_flow})
-                    h_hub_sample = h_hub_sample+1
             
             # Append hub total to list for period tally later
             list_period_totals.append(total_hub_flow)
@@ -729,9 +753,12 @@ def score_summer(dhn, **kwargs):
             # Update hub with flow score total for each node in hub
             ht_hub_sample = 0
             for pln in dhn[p]['info_hub'][ht]:
-                if ht_hub_sample < kwargs['hub_sample_size']:
+                if kwargs['hub_sample_size']:
+                    if ht_hub_sample < kwargs['hub_sample_size']:
+                        pln.update({'total_period_flow_score': pt})
+                        ht_hub_sample = ht_hub_sample+1
+                else:
                     pln.update({'total_period_flow_score': pt})
-                    ht_hub_sample = ht_hub_sample+1
     return dhn
 
 '''
@@ -948,20 +975,20 @@ def period_dates_writer(allPeriodsObj=None, **kwargs):
             - Either the periodObject() with the new property comm_nums, or
             - List of comm numbers as Strings
 '''
-def get_comm_nums(**kwargs):
+def get_comm_nums(dft_comm_col=None,period_obj=None):
     # Get community numbers
     c_list = []
-    for c in kwargs['dft_comm_col'].values.tolist():
+    for c in dft_comm_col.values.tolist():
         if not c_list:
             c_list.append(c)
         elif c not in c_list:
             c_list.append(c)
     
-    if not kwargs['period_obj'] or kwargs['period_obj'] is None:
+    if period_obj is None:
         return c_list
-    elif kwargs['period_obj']:
-        kwargs['period_obj'].comm_nums = c_list
-        return kwargs['period_obj']
+    elif period_obj:
+        period_obj.comm_nums = c_list
+        return period_obj
 
 '''
     comm_sender && write_community_list functions create a dict of nodes 
@@ -1172,9 +1199,11 @@ def comm_dict_writer(**kwargs):
 
 '''
     Isolates community's content, then splits string into list of strings per Tweet
-        preparing them for the topic modeling
-
-        Args: Community number as String, Dictionary of communities' content
+        preparing them for the topic modeling.
+        Args: 
+            - col_name: String. Community label as String, 
+            - dict_comm_obj: Dict of community objects
+            - sample_size_percentage: Float. Between 0 and 1. 
         Returns as Dataframe of content for resepective community
 '''
 def split_community_tweets(**kwargs):
@@ -1254,46 +1283,87 @@ def clean_split_docs(pcpd):
 def tm_maker(**kwargs):
     np.random.seed(kwargs['random_seed'])
     nltk.download('wordnet')
-    for split in kwargs['split_comms']:
+    if kwargs['single'] == True:
         # Create Dictionary
-        id2word = corpora.Dictionary(kwargs['split_comms'][split].split_docs.tolist())
-        kwargs['split_comms'][split].id2word = id2word
+        id2word = corpora.Dictionary(kwargs['split_comms'].split_docs.tolist())
+        kwargs['split_comms'].id2word = id2word
 
         # Create Texts
-        texts = kwargs['split_comms'][split].split_docs.tolist()
-        kwargs['split_comms'][split].texts = texts
+        texts = kwargs['split_comms'].split_docs.tolist()
+        kwargs['split_comms'].texts = texts
 
         # Term Document Frequency
         corpus = [id2word.doc2bow(text) for text in texts]
-        kwargs['split_comms'][split].corpus = corpus
+        kwargs['split_comms'].corpus = corpus
 
         # Human readable format of corpus (term-frequency)
         read_me = [[(id2word[id], freq) for id, freq in cp] for cp in corpus[:1]]
-        kwargs['split_comms'][split].readme = read_me
+        kwargs['split_comms'].readme = read_me
 
         # Build LDA model
         lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
-                                                   id2word=id2word,
-                                                   num_topics=kwargs['num_topics'],
-                                                   random_state=kwargs['random_state'],
-                                                   update_every=kwargs['update_every'],
-                                                   chunksize=kwargs['chunksize'],
-                                                   passes=kwargs['passes'],
-                                                   alpha=kwargs['alpha'],
-                                                   per_word_topics=kwargs['per_word_topics'])
+                                                id2word=id2word,
+                                                num_topics=kwargs['num_topics'],
+                                                random_state=kwargs['random_state'],
+                                                update_every=kwargs['update_every'],
+                                                chunksize=kwargs['chunksize'],
+                                                passes=kwargs['passes'],
+                                                alpha=kwargs['alpha'],
+                                                per_word_topics=kwargs['per_word_topics'])
 
-        kwargs['split_comms'][split].model = lda_model
+        kwargs['split_comms'].model = lda_model
 
         # Compute Perplexity
         perplexity = lda_model.log_perplexity(corpus)
-        kwargs['split_comms'][split].perplexity = perplexity
-        print('\n', split, ' Perplexity: ', perplexity)  # a measure of how good the model is. lower the better.
+        kwargs['split_comms'].perplexity = perplexity
+        print('\nPerplexity: ', perplexity)  # a measure of how good the model is. lower the better.
 
         # Compute Coherence Score
         coherence_model_lda = CoherenceModel(model=lda_model, texts=texts, dictionary=id2word, coherence='c_v')
         coherence_lda = coherence_model_lda.get_coherence()
-        kwargs['split_comms'][split].coherence = coherence_lda
-        print('\n', split, ' Coherence Score: ', coherence_lda)
+        kwargs['split_comms'].coherence = coherence_lda
+        print('\nCoherence Score: ', coherence_lda)
+    else:
+        for split in kwargs['split_comms']:
+            # Create Dictionary
+            id2word = corpora.Dictionary(kwargs['split_comms'][split].split_docs.tolist())
+            kwargs['split_comms'][split].id2word = id2word
+
+            # Create Texts
+            texts = kwargs['split_comms'][split].split_docs.tolist()
+            kwargs['split_comms'][split].texts = texts
+
+            # Term Document Frequency
+            corpus = [id2word.doc2bow(text) for text in texts]
+            kwargs['split_comms'][split].corpus = corpus
+
+            # Human readable format of corpus (term-frequency)
+            read_me = [[(id2word[id], freq) for id, freq in cp] for cp in corpus[:1]]
+            kwargs['split_comms'][split].readme = read_me
+
+            # Build LDA model
+            lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
+                                                    id2word=id2word,
+                                                    num_topics=kwargs['num_topics'],
+                                                    random_state=kwargs['random_state'],
+                                                    update_every=kwargs['update_every'],
+                                                    chunksize=kwargs['chunksize'],
+                                                    passes=kwargs['passes'],
+                                                    alpha=kwargs['alpha'],
+                                                    per_word_topics=kwargs['per_word_topics'])
+
+            kwargs['split_comms'][split].model = lda_model
+
+            # Compute Perplexity
+            perplexity = lda_model.log_perplexity(corpus)
+            kwargs['split_comms'][split].perplexity = perplexity
+            print('\n', split, ' Perplexity: ', perplexity)  # a measure of how good the model is. lower the better.
+
+            # Compute Coherence Score
+            coherence_model_lda = CoherenceModel(model=lda_model, texts=texts, dictionary=id2word, coherence='c_v')
+            coherence_lda = coherence_model_lda.get_coherence()
+            kwargs['split_comms'][split].coherence = coherence_lda
+            print('\n', split, ' Coherence Score: ', coherence_lda)
 
     print('\n Modeling complete.')
     return kwargs['split_comms']
@@ -1517,7 +1587,6 @@ def plot_bar_from_counter(**kwargs):
             period_community values extracted via a regex expression.
         - Returns: A dict of oversaturated comparisons, which are sent to final_grouper()
             for final analysis, reduction, and completion.
-
 '''
 def group_reader(group_dict, m1, m2):
     for g in list(group_dict): # parse list of dicts
