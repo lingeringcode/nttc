@@ -77,6 +77,8 @@ Sample hub:  [{'node': '1', 'name': 'realdonaldtrump', 'score': 0.135007}, {'nod
 
 ## Sample tweets based on hubs
 
+**Currently under development, so it is not available.**
+
 Create samples of tweets based on the hubs from each detected community:
 
 1. Create infomap hubs from ```.ftree``` files:
