@@ -1,6 +1,6 @@
 # Build topic models 
 
-See the [example notebook]() to see how to build topic models per community-detected submodules and save all variables to respective object properties.
+See the [example notebook](https://github.com/lingeringcode/nttc/tree/master/assets/examples) to see how to build topic models per community-detected submodules and save all variables to respective object properties.
 
 You can also add top mentioned users to each community's ```.top_mentions``` property:
 
