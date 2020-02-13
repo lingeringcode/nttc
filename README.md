@@ -39,9 +39,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 ## Under Development
 
-- .ftree parsing is currently under development:
-  - .batch_map() using the .ftree option.
-  - Specifically working on the indices_getter(), so that the entire file is parsed and available to use.
+- Sampler for flow-based communities (infomap / map equation) and modularity-based communities
 
 ## Example notebooks
 

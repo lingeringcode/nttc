@@ -393,29 +393,133 @@ def read_map_or_ftree(**kwargs):
     return lines
 
 '''
+    infomap_edge_data_lister: Listifies edge dataframe to include period and community
+        module information. Easier to transform as new DF and export as CSV.
+        Args:
+            - dict_map: Saturated Dict from ftree_edge_maker().
+            - p_sample: Integer. Total periods to sample.
+            - m_sample: Integer. Total modules to sample.
+        Return:
+            - list_edge_data: List of lists of edge data.
+'''
+def infomap_edge_data_lister(dict_map,p_sample,m_sample):
+    list_edge_data = []
+    for p in range(1, p_sample):
+        for m in range(1, m_sample):
+            pm_df = dict_map[str(p)]['indices']['ftree_links'][str(m)]['df_edges']
+            # Parse DF for export
+            for d in pm_df.values.tolist():
+                list_edge_data.append([str(p), str(m), d[0][:-1], d[1][:-1], d[2]])
+    return list_edge_data
+
+'''
+    ftree_edge_maker: Processes each period's module edge data and stores as a DataFrame.
+        Args: 
+            - dict_map: Dict. Saturated dict from batchmap and indices_getter functions.
+        Return:
+            - dict_map: Dict. dict_map now includes edge data per Period per Module as
+                pandas DataFrames.
+'''
+def ftree_edge_maker(dict_map):
+    re_edge_data = r"(\d{1,10}\s)(\d{1,}\s)(\d\.\d{1,}e-\d{1,}|\d{1,}\.\d{1,})"
+    # Go through each period
+    for p in dict_map:
+        print('Processing edge data for period', p)
+        # Each module's links
+        for m in dict_map[p]['indices']['ftree_links']:
+            start = 0
+            end = 0
+            if dict_map[p]['indices']['ftree_links'][m]['indices'][0] < dict_map[p]['indices']['ftree_links'][m]['indices'][1]:
+                start = dict_map[p]['indices']['ftree_links'][m]['indices'][0]
+                end = dict_map[p]['indices']['ftree_links'][m]['indices'][1]
+            # If start equal to end, then there are no edges.
+            elif dict_map[p]['indices']['ftree_links'][m]['indices'][0] == dict_map[p]['indices']['ftree_links'][m]['indices'][1]:
+                break
+            list_edges = []
+            for l in dict_map[p]['lines'][start:end]:
+                group_matches = re.findall(re_edge_data, l)
+                list_edges.append([group_matches[0][0],group_matches[0][1],group_matches[0][2]])
+            df = pd.DataFrame(list_edges,columns=['source','target','directed_count'])
+            if len(df) > 0:
+                # Append network edge data as dataframe
+                dict_map[p]['indices']['ftree_links'][m]['df_edges'] = df
+            else:
+                # Demarcate no edge data as Integer 0
+                dict_map[p]['indices']['ftree_links'][m]['df_edges'] = 0
+    print('Processing complete!')
+    return dict_map
+'''
+'''
+def get_link_indices_info(root_check, index, l):
+    re_ftree_link_sum_stats = r"(\s\d\.\d{1,}|\d\.\d{1,}e-\d{1,}|\s\d)(\s\d{1,})(\s\d{1,})"
+    dict_entry = {}
+
+    if root_check == True:
+        link_root_begin_index = index+1
+        link_stat_match = re.findall(re_ftree_link_sum_stats, l)
+        exit_flow = link_stat_match[0][0][1:]
+        num_edges = link_stat_match[0][1][1:]
+        num_children = link_stat_match[0][2][1:]
+        key = l[6:11]
+        dict_entry.update({
+            '1': {
+                'exit_flow': exit_flow,
+                'num_edges': num_edges,
+                'num_children': num_children,
+                'indices': [link_root_begin_index]
+            }
+        })
+        return dict_entry
+    if root_check == False:
+        re_ftree_links_mod_num = r"\*Links\s\d{1,10}\s"
+        # Indices
+        link_mod_begin_index = index+1
+        # Match up desired data
+        mod_header_match = re.findall(re_ftree_links_mod_num, l)
+        link_stat_match = re.findall(re_ftree_link_sum_stats, l)
+        exit_flow = link_stat_match[0][0][1:]
+        num_edges = link_stat_match[0][1][1:]
+        num_children = link_stat_match[0][2][1:]
+        # Assign module number as dict key
+        key = mod_header_match[0][6:-1]
+        key = int(key)+1
+        key = str(key)
+        # Update current link info
+        dict_entry.update({
+            key: {
+                'exit_flow': exit_flow,
+                'num_edges': num_edges,
+                'num_children': num_children,
+                'indices': [link_mod_begin_index]
+            }
+        })
+        return dict_entry
+
+'''
     indices_getter: Helper function for batch_map. Parses each line in the file
     and returns a list of lists, where each sublists is a line in the file.
-    - Future version could accept a dict of regex delimiters and parse file base
-        on those given parameters.
+        Args:
+            - file_type: String. 'ftree' or 'map' to denote input file format.
+            - lines: List. Listified file, where each row is a String to be parsed.
+        Return:
+            - dict_indices: Dict. Contains indices and basic stat information
 '''
-def indices_getter(file_type, data_type, lines):
+def indices_getter(file_type, lines):
     re_modules = r"\*Modules\s\d{1,}"
     re_nodes = r"\*Nodes\s\d{1,}"
     re_links = r"\*Links\s\d{1,}"
     re_ftree = r"\#\spath\sflow\sname\snode\:" #Ftree start to modules
     re_ftree_links_hd_1 = r"\*Links\sdirected" #End of mods, start of first Links
     re_ftree_links_mods_root = r"\*Links\sroot\s\d{1,}\.\d{1,}\s\d{1,}\s\d{1,}" #root link
-    re_ftree_links_mods = r"\*Links\s\d{1,}\s\d{1,}\.\d{1,}\s\d{1,}\s\d{1,}" #all other links
+    re_ftree_links_mods = r"\*Links\s\d{1,}\s\d{1,}\.\d{1,}\s\d{1,}\s\d{1,}|\*Links\s\d{1,}\s\d{1,}\.\d{1,}e-\d{1,}\s\d{1,}\s\d{1,}|\*Links\s\d{1,}\s\d{1,}\s\d{1,}\s\d{1,}|\*Links\s\d{1,}\s-\d{1,}\.\d{1,}e-\d{1,}\s\d{1,}\s\d{1,}" #all other links
+    
     index = 0
     mod_index = 0
     node_index = 0
     link_index = 0
-    link_root_mod_index = 0
-    link_mod_index = 0
     mod_list = []
     node_list = []
     link_list = []
-    ftree_list = []
     dict_indices = {}
     
     if file_type == 'map':
@@ -442,36 +546,54 @@ def indices_getter(file_type, data_type, lines):
             'links': link_list[0]
         }
     if file_type == 'ftree':
-        print('Sorry. Under development right now.')
         # PARSE ALL MODULES & LINKS
-        # ftree_mods_begin_index = 0
-        # links_begin_index = 0
-        # TODO: Need way to track past link mod # and current to write DICT
-        # prior_link_begin_index = 0
-        # for l in lines:
-        #     ftree_match = re.match(re_ftree, l)
-        #     link_match = re.match(re_ftree_links_hd_1, l)
-        #     link_root_mod_match = re.match(re_ftree_links_mods_root, l)
-        #     link_num_mod_match = re.match(re_ftree_links_mods, l)
-            
-        #     #If match, assign current index for indices
-        #     if ftree_match != None:
-        #         ftree_mods_begin_index = index
-        #     elif link_match != None:
-        #         links_begin_index = index
-        #     elif link_root_mod_match != None:
-        #         link_root_mod_index = index
-        #     elif link_num_mod_match != None:
-        #         link_mod_index = index
-        #     index = index + 1
+        ftree_mods_begin_index = 0
+        links_begin_index = 0
+        dict_ftree_mod_edges = {}
+
+        for l in lines:
+            ftree_match = re.match(re_ftree, l)
+            link_match = re.match(re_ftree_links_hd_1, l)
+            link_root_mod_match = re.match(re_ftree_links_mods_root, l)
+            link_num_mod_match = re.match(re_ftree_links_mods, l)
+
+            #If match, assign current index for indices
+            if ftree_match != None:
+                ftree_mods_begin_index = index
+            elif link_match != None:
+                links_begin_index = index
+            elif link_root_mod_match != None:
+                rc = True
+                dict_info = get_link_indices_info(rc, index,l)
+                dict_ftree_mod_edges.update(dict_info)
+
+            elif link_num_mod_match != None:
+                rc = False
+                dict_info = get_link_indices_info(rc, index, l)
+                dict_ftree_mod_edges.update(dict_info)
+                
+                # Update previous link indices
+                re_ftree_links_mod_num = r"\*Links\s\d{1,10}\s"
+                mod_header_match = re.findall(re_ftree_links_mod_num, l)
+                key = mod_header_match[0][6:-1]
+                key = int(key)+1
+                key = str(key)
+                last_key = int(key)-1
+                last_key = str(last_key)
+                
+                # Assign index from last key
+                try:
+                    dict_ftree_mod_edges[last_key]['indices'].append(index)
+                except KeyError as e:
+                    print('KeyError ',e)
+
+            index = index + 1
         
-        # # Assign indices to list
-        # ftree_list.append([ftree_mods_begin_index+1, links_begin_index-1])
-        # print(ftree_list)
-        # dict_indices = {
-        #     'ftree_modules': ftree_list[0],
-        #     'ftree_links': ftree_list[1]
-        # }
+        # Assign indices to list
+        dict_indices = {
+            'ftree_modules': [ftree_mods_begin_index+1, links_begin_index-1],
+            'ftree_links': dict_ftree_mod_edges
+        }
 
     return dict_indices
 
@@ -505,22 +627,29 @@ def batch_map(**kwargs):
                 periods.append(period_num[0])
     
     # Write per Period dict with each file as List of lines to parse
-    for f in list_of_files:
+    map_dicts = {}
+    sorted_list_of_files = sorted(list_of_files)
+    for f in sorted_list_of_files:
         period_num = re.search(re_period, f)
         p = period_num[0]
         lines = read_map_or_ftree(path=kwargs['path'], file=f)
 
         if kwargs['file_type'] == 'map':
-            indices = indices_getter(kwargs['file_type'], kwargs['file_type'], lines)
-        elif kwargs['file_type'] == 'ftree':
-            indices = indices_getter(kwargs['file_type'], kwargs['file_type'], lines)
-        
-        map_dicts.update({ p: 
+            indices = indices_getter(kwargs['file_type'], lines)
+            map_dicts.update({ p: 
                         {
                             'lines': lines,
                             'indices': indices
                         } 
-        })
+            })
+        elif kwargs['file_type'] == 'ftree':
+            indices = indices_getter(kwargs['file_type'], lines)
+            map_dicts.update({ p: 
+                        {
+                            'lines': lines,
+                            'indices': indices
+                        } 
+            })
     
     return map_dicts
 
@@ -653,8 +782,8 @@ def infomap_hub_maker(dict_map, **kwargs):
                     dict_hubs[mod].append(hub_list)
         if kwargs['file_type'] == 'ftree':
             # Get indices for ftree in period's flow values
-            start = dict_map[p]['indices']['ftree'][0]
-            end = dict_map[p]['indices']['ftree'][1]
+            start = dict_map[p]['indices']['ftree_modules'][0]
+            end = dict_map[p]['indices']['ftree_modules'][1]
             
             # Traverse nodes in period's ftree
             for n in dict_map[p]['lines'][start:end]:
