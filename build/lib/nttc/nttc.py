@@ -438,7 +438,7 @@ def ftree_edge_maker(dict_map):
             list_edges = []
             for l in dict_map[p]['lines'][start:end]:
                 group_matches = re.findall(re_edge_data, l)
-                list_edges.append([group_matches[0][0],group_matches[0][1],group_matches[0][2]])
+                list_edges.append([group_matches[0][0][:-1],group_matches[0][1][:-1],group_matches[0][2]])
             df = pd.DataFrame(list_edges,columns=['source','target','directed_count'])
             if len(df) > 0:
                 # Append network edge data as dataframe
@@ -654,6 +654,86 @@ def batch_map(**kwargs):
     return map_dicts
 
 '''
+    network_organizer: Organizes infomap .ftree network edge and node data
+        into Dict.
+        
+        Args:
+            - m_edges: DataFrame. Per period module edge data
+            - m_mod: List of Dicts. Per period list of module data 
+        Return:
+            - return_dict: Dict. Network node and edge data with names:
+                { 
+                    return_dict: 
+                        '1':{
+                            '1':{
+                                'nodes': DataFrame,
+                                'edges': Dataframe
+                            }, ...
+                        }, ...
+                    }
+                }
+'''
+def network_organizer(m_edges, m_mod):
+    new_list_nodes = []
+    new_dict_edges = []
+    return_dict = {}
+    eds = m_edges.to_dict('records')
+    for e in eds:
+        for n in m_mod:
+            if str(e['source']) == str(n['node']):
+                e['source_name'] = n['name']
+                if n['name'] not in new_list_nodes:
+                    new_list_nodes.append(n['name'])
+                for nn in m_mod:
+                    if str(e['target']) == str(nn['node']):
+                        e['target_name'] = nn['name']
+                        new_dict_edges.append(e)
+                        if nn['name'] not in new_list_nodes:
+                            new_list_nodes.append(n['name'])
+                        break
+    
+    df_full_nodes = pd.DataFrame(new_list_nodes, columns=['username'])
+    nodes = df_full_nodes.drop_duplicates(keep='first')
+    df_full_edges = pd.DataFrame.from_dict(new_dict_edges)
+    return_dict['nodes'] = nodes
+    return_dict['edges'] = df_full_edges
+    
+    return return_dict
+
+'''
+    networks_controller: Uses Dict data structure hydrated from the 
+        following functions
+            - .batch_map()
+            - .ftree_edge_maker(), and
+            - .infomap_hub_maker().
+        It appends node names to edge data and also creates a node list
+        for each module.
+        Args:
+            - p_sample: Integer. Number of desired periods to sample.
+            - m_sample: Integer. Number of desired modules to sample.
+            - Dict. Output from batch_map(), ftree_edge_maker(), and
+                infomap_hub_maker(), which includes.
+                - DataFrame. Module edge data.
+                - List of dicts. Module node data with names.
+        Return:
+            - dict_network: Appends more accessible edge and node data.
+'''
+def networks_controller(p_sample, m_sample, dict_im):
+    dict_network = {}
+    dict_network['network'] = {}
+    for p in range(1, (p_sample+1)):
+        print('Processing period', p)
+        dict_network['network'][str(p)] = {}
+        for m in range(1, (m_sample+1)):
+            print('Module', m)
+            nodes_and_edges = network_organizer(
+                        dict_im[str(p)]['indices']['ftree_links'][str(m)]['df_edges'],
+                        dict_im[str(p)]['info_hub'][str(m)]
+            )
+            dict_network['network'][str(p)][str(m)] = nodes_and_edges
+            
+    return dict_network
+'''
     append_percentages: Helper function for ranker(). Appends each node's total_percentage to the list
     - Args:
         - rl= List of lists. Ranked list of nodes per hub
@@ -725,8 +805,8 @@ def ranker(tdhn, **kwargs):
             - dict_map= Dict with new 'info_hub' key hydrated with hubs
 '''
 def infomap_hub_maker(dict_map, **kwargs):
-    re_mod = r"\d{1,}\:"        #Map module number
-    re_node = r"\:\d{1,2}"      #Map node number
+    re_mod = r"\d{1,}\:"        #Map/Ftree module number
+    re_node = r"\:\d{1,}"      #Map/Ftree node number
     re_name = r"\"\S{1,}\""     #Map node name
     re_score = r"\d{1}\.\d{1,}" #Node's flow score
     
@@ -790,13 +870,13 @@ def infomap_hub_maker(dict_map, **kwargs):
                 mod_match = re.match(re_ftree_module, n)
                 flow_match = re.findall(re_ftree_flow, n)
                 name_match = re.findall(re_ftree_username, n)
-                node_match = re.findall(re_ftree_node, n)
+                node_match = re.findall(re_node, n)
                 
                 mod = mod_match[0][0:-1] #Remove colon
                 flow = flow_match[0][0][:-1] #Remove whitespace at end
                 flow = float(flow)
                 name = name_match[0][1:-1] #Remove double-quotes
-                node = node_match[0][2:] #Remove quote and whitespace start
+                node = node_match[0][1:] #Remove colon at start
                 
                 hub_list = []
 
@@ -855,7 +935,7 @@ def get_period_flow_total(lpt):
 '''
     score_summer(): Tally scores from each module per period and append a score_total to each node instance per module for every period.
     - Args:
-        - dhn= Dict of hubs returned from info_hub_maker
+        - dhn= Dict of hubs returned from infomap_hub_maker
 '''
 def score_summer(dhn, **kwargs):
     for p in dhn:

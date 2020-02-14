@@ -144,37 +144,98 @@ Outputs .txt file with edges in a .net format for the [Infomap](https://www.mape
 
 It also contains functions that enable you to isolate and output a CSV file with the hubs from each period. It does so with custom parsers for the infomap [```.map```](https://www.mapequation.org/code.html#Map-format) and [```.ftree```](https://www.mapequation.org/code.html#Map-format) file formats:
 
-* ```read_map_or_ftree```: Helper function for infomap_hub_maker. Slices period's ```.map``` or ```.ftree``` into their line-by-line indices and returns a dict of those values for use.
-* ```indices_getter```: Helper function for batch_map. Parses each line in the file and returns a list of lists, where each sublists is a line in the file.
-    - Future version could accept a dict of regex delimiters and parse file base on those given parameters.
-* ```batch_map```: Retrieves all map files in a single directory. It assumes that you have only the desired files in said directory. Returns a dict of each files based on their naming scheme with custom regex pattern. Each key denotes the file and its values are list of lists, where each sublist is a lines in the file.
+### ```read_map_or_ftree```
+
+Helper function for infomap_hub_maker. Slices period's ```.map``` or ```.ftree``` into their line-by-line indices and returns a dict of those values for use.
+
+### ```indices_getter```
+
+Helper function for batch_map. Parses each line in the file and returns a list of lists, where each sublists is a line in the file.
+
+### ```batch_map```
+
+Retrieves all map files in a single directory. It assumes that you have only the desired files in said directory. Returns a dict of each files based on their naming scheme with custom regex pattern. Each key denotes the file and its values are list of lists, where each sublist is a lines in the file.
   - ```regex```= Regular expression for filename scheme
   - ```path```= String. Path for directory with .map or .ftree files
-* ```ranker```: Appends rank and percentages at different aggregate levels.
+
+### ```networks_controller```
+
+Uses Dict data structure hydrated from the following functions
+  - .batch_map()
+  - .ftree_edge_maker(), and
+  - .infomap_hub_maker().
+
+It appends node names to edge data and also creates a node list for each module.
+  - Args:
+      - p_sample: Integer. Number of desired periods to sample.
+      - m_sample: Integer. Number of desired modules to sample.
+      - Dict. Output from batch_map(), ftree_edge_maker(), and
+          infomap_hub_maker(), which includes.
+          - DataFrame. Module edge data.
+          - DataFrame. Module node data with names.
+  - Return:
+      - dict_network: Appends more accessible edge and node data.
+
+### ```network_organizer```
+
+Organizes infomap .ftree network edge and node data into Dict.
+  - Args:
+      - m_edges: DataFrame. Per period module edge data
+      - m_mod: List of Dicts. Per period list of module data 
+  - Return:
+      - return_dict: Dict. Network node and edge data with names:<pre>
+          { 
+              return_dict: {
+                  'nodes': DataFrame,
+                  'edges': Dataframe
+              }
+          }</pre>
+
+### ```ranker```
+
+Appends rank and percentages at different aggregate levels.
     - Args:
         - ```rank_type```= String. Argument option for type of ranking to conduct. Currently only per_hub.
         - ```tdhn```= Dict of corpus. Traverses the 'info_hub'
     - Return
         - ```tdhn```= Updated 'info_hub' with 'percentage_total' per hub and 'spot' for each node per hub,
     - TODO: Add per_party and per_hubname
-* ```append_rank```: Helper function for ranker(). It appends the rank number for the 'spot' value.
-* ```append_percentages```: Helper function for ranker(). Appends each node's total_percentage to the list
+
+### ```append_rank```
+
+Helper function for ranker(). It appends the rank number for the 'spot' value.
+
+### ```append_percentages```
+
+Helper function for ranker(). Appends each node's total_percentage to the list
     - Args:
         - ``rl``= List of lists. Ranked list of nodes per hub
-* ```score_summer```(): Tally scores from each module per period and append a score_total to each node instance per module for every period.
+
+### ```score_summer```
+
+Tally scores from each module per period and append a score_total to each node instance per module for every period.
     - Args:
         - ```dhn```= Dict of hubs returned from info_hub_maker
-* ```get_period_flow_total```: Helper function for score_summer. Tallies scores per Period across hubs.
+
+### ```get_period_flow_total```
+
+Helper function for score_summer. Tallies scores per Period across hubs.
   - Args:
       - ```lpt```= List. Contains hub totals per Period.
   - Return
       - Float. Total flow score for a Period.
-* ```get_score_total```: Helper function for score_summer. Tallies scores per Hub.
+
+### ```get_score_total```
+
+Helper function for score_summer. Tallies scores per Hub.
     - Args:
         - ```list_nodes```= List of Dicts
     - Return
         - ```total```= Float. Total flow score for a Hub.
-* ```infomap_hub_maker```: Takes fully hydrated Dict of the ```map``` or ```ftree``` files and parses its Nodes into per Period and Module Dicts.
+
+### ```infomap_hub_maker```
+
+Takes fully hydrated Dict of the ```map``` or ```ftree``` files and parses its Nodes into per Period and Module Dicts.
   - Args: 
       - ```file_type```= String. 'map' or 'ftree' file type designation
       - ```dict_map```= Dict of map files
@@ -182,14 +243,20 @@ It also contains functions that enable you to isolate and output a CSV file with
       - ```hub_sample_size```= Integer. number of nodes to sample for "hub" of each module
   - Output:
       - ```dict_map```= Dict with new ```info_hub``` key hydrated with hubs
-* ```output_infomap_hub```: Takes fully hydrated infomap dict and outputs it as a CSV file.
+
+### ```output_infomap_hub```
+
+Takes fully hydrated infomap dict and outputs it as a CSV file.
   - Args: 
       - ```header```= column names for DataFrame and CSV; 
           - Assumes they're in order with period and hub in first and second position
       - ```dict_hub```= Hydrated Dict of hubs
       - ``path``= Output path
       - ``file``= Output file name
-* ```sampling_module_hubs```: Compares hub set with tweet data to ultimately output sampled tweets with hub information.
+
+### ```sampling_module_hubs```
+
+Compares hub set with tweet data to ultimately output sampled tweets with hub information.
   * Args:
     * ```period_dates```: Dict of lists that include dates for each period of the corpus
     * ```period_check```: String for option: Check against 'single' or 'multiple'
@@ -200,20 +267,23 @@ It also contains functions that enable you to isolate and output a CSV file with
     * ```hub_sample```: Integer of desired sample size to output
     * ```columns```: List of column names; each as a String. **Must match column names from tweet and hub data sets
   * Returns DataFrame of top sampled tweets
-* ```add_infomap```: Helper function for ```sampling_module_hubs```. It cross-references the sampled .
+
+### ```add_infomap```: Helper function for ```sampling_module_hubs```. It cross-references the sampled .
   * Args:
     * dft: DataFrame of sampled tweet data
     * dfh: Full DataFrame of hubs data
     * period_num: Integer of particular period number
   * Returns List of Dicts with hub and info_name mentions info
-* ```batch_output_period_hub_samples```: Periodic batch output that saves sampled tweets as a CSV. Assumes successively numbered periods.
+
+### ```batch_output_period_hub_samples```
+
+Periodic batch output that saves sampled tweets as a CSV. Assumes successively numbered periods.
   * Args:
     * module_output: DataFrame of tweet sample data per Period per Module
     * period_total: Interger of total number of periods
     * file_ext: String of desired filename extension pattern
     * period_path: String of desired path to save the files
   * Returns nothing
-
 
 ## periodObject Functions
 

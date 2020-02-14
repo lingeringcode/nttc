@@ -206,3 +206,72 @@ Output:
   'period': '1',
   'score': 0.138213}]
 ```
+## Process .ftree node and edge data
+
+After running the following functions:
+
+- .batch_map()
+- .ftree_edge_maker(), and
+- .infomap_hub_maker().
+
+You can subsequently write and organize the edges and nodes for further network analysis and visualization.
+
+```python
+'''
+    Positional arguments: 
+        1. Number of desired periods to sample.
+        2. Number of desired modules to sample.
+        3. Dict. Output from batch_map(), ftree_edge_maker(), and
+           infomap_hub_maker(), which includes.
+           - DataFrame. Module edge data.
+           - List of dicts. Module node data with names.
+'''
+dict_full = nttc.networks_controller(10,10,dh)
+```
+
+Output updates its progress:
+
+```
+Processing period 1
+Module 1
+Module 2
+Module 3
+Module 4
+Module 5
+Module 6
+Module 7
+Module 8
+Module 9
+Module 10
+Processing period 2
+Module 1
+...
+```
+
+Test outputs:
+
+```python
+dict_full['network']['1']['10']['edges'][:5]
+```
+Output (dataframe sample):
+```
+	directed_count	source	source_name	target	target_name
+0	2.10157e-05	18	username2	1	username1
+1	2.10157e-05	41	username3	1	username1
+2	2.10157e-05	269	username4	1	username1
+3	2.10157e-05	6	username5	1	username1
+4	1.68126e-05	45	username6	1	username1
+```
+
+```python
+dict_full['network']['1']['10']['nodes'][:5]
+```
+Output (dataframe sample):
+```
+username
+0	username1
+2	username2
+4	username3
+6	username4
+8	username5
+```
