@@ -1184,11 +1184,9 @@ def ic_sample_getter(sample_size, edges, period_corpus):
         df_sample = pd.DataFrame(mod_list_sample)
         return df_sample
         
-
 '''
     infomap_content_sampler: Sample content in each period per module, based on
-        map equation flow-based community detection. Takes
-        
+        map equation flow-based community detection.
         Args:
             - network: Dict. Each community across periods edge and node data.
             - corpus: DataFrame.
@@ -1196,8 +1194,7 @@ def ic_sample_getter(sample_size, edges, period_corpus):
             - sample_size: Integer.
             - random: Boolean. True pulls randomized sample. False pulls top x tweets.
         Return:
-            - Dict of DataFrames. Sample of content in each module per period
-            
+            - Dict of DataFrames. Sample of content in each module per period       
 '''
 def infomap_content_sampler(network, sample_size, period_dates, corpus, random=False):
     dict_samples = {}
