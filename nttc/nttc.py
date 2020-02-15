@@ -1133,6 +1133,90 @@ def batch_output_period_hub_samples(**kwargs):
         print('Wrote', p_file, 'to', kwargs['period_path'])
         x = x + 1
 
+'''
+    ic_sample_getter: Samples corpus based on module edge data from infomap data.
+    
+    Args:
+        - sample_size: Integer. Number of edges to sample.
+        - edges: List of Dicts. Edge data.
+        - period_corpus: DataFrame. Content corpus to be sampled.
+    Return:
+        - DataFrame. Sampled content, based on infomap module edges.
+'''
+def ic_sample_getter(sample_size, edges, period_corpus):
+    mod_list_sample = []
+    
+    for c in range(1,(sample_size+1)):
+        try:
+            # Based on source - target and dates, search corpus for tweets as DF
+            s = edges[c]['source_name']
+            t = edges[c]['target_name']
+            sample_content = period_corpus[(s == period_corpus['username'])]
+            for index, row in sample_content.iterrows():
+                m = row['mentions']
+                if isinstance(m, str):
+                    m = ast.literal_eval(m)
+                    if len(m) > 0:
+                        for i in m:
+                            if i == t:
+                                r = {
+                                    'id': int(float(row[0])),
+                                    'date': row[1],
+                                    'user_id': int(float(row[2])),
+                                    'username': row[3],
+                                    'tweet': row[4], 
+                                    'mentions': row[5], 
+                                    'retweets_count': row[6], 
+                                    'hashtags': row[7], 
+                                    'link': row[8]
+                                }
+                                mod_list_sample.append(r)
+        except IndexError as e:
+            print('\n\nERROR:',e, 'Out of edges to sample.\n\n')
+            break
+    
+    if len(mod_list_sample) > (sample_size):
+        df_sample = pd.DataFrame(mod_list_sample)
+        sorted_sample = df_sample.sort_values('retweets_count', ascending=False)
+        ss = sorted_sample[:sample_size]
+        return ss
+    elif len(mod_list_sample) < sample_size:
+        df_sample = pd.DataFrame(mod_list_sample)
+        return df_sample
+        
+'''
+    infomap_content_sampler: Sample content in each period per module, based on
+        map equation flow-based community detection.
+        Args:
+            - network: Dict. Each community across periods edge and node data.
+            - corpus: DataFrame.
+            - period_dates: Dict of lists.
+            - sample_size: Integer.
+            - random: Boolean. True pulls randomized sample. False pulls top x tweets.
+        Return:
+            - Dict of DataFrames. Sample of content in each module per period       
+'''
+def infomap_content_sampler(network, sample_size, period_dates, corpus, random=False):
+    dict_samples = {}
+    if random == False:
+        for p in network:
+            dict_samples[p] = {}
+            print('Sampling from period', p)
+            for m in network[p]:
+                dict_samples[p][m] = {}
+                m_edges = network[p][m]['edges'].to_dict('records') #Dict of module edge data
+                p_dates = period_dates[p] #List of dates for period
+                p_corpus = corpus.loc[corpus['date'].isin(p_dates)]
+                sample = ic_sample_getter(sample_size, m_edges, p_corpus)
+                try:
+                    print('Module', m, 'sample size:', len(sample))
+                except TypeError as e:
+                    print('Module', m, 'sample size: 0')
+                dict_samples[p][m]['sample'] = sample
+            print('\n')
+                
+        return dict_samples
+
 ##################################################################
 
 ## allPeriodsObject Functions

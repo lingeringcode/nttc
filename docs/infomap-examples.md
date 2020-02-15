@@ -275,3 +275,90 @@ username
 3	username4
 4	username5
 ```
+
+## Sample corpus content
+
+Need: Corpus and period dates.
+
+Create period dates:
+
+```python
+# Create period date lists
+ranges = [
+    ('1', ['2018-01-01', '2018-03-30']),
+    ('2', ['2018-04-01', '2018-06-12']),
+    ('3', ['2018-06-13', '2018-07-28']),
+    ('4', ['2018-07-29', '2018-10-17']),
+    ('5', ['2018-10-18', '2018-11-24']),
+    ('6', ['2018-11-25', '2018-12-10']),
+    ('7', ['2018-12-11', '2018-12-19']),
+    ('8', ['2018-12-20', '2018-12-25']),
+    ('9', ['2018-12-26', '2019-02-13']),
+    ('10', ['2019-02-14', '2019-02-28'])
+]
+
+period_dates = nttc.period_dates_writer(ranges=ranges)
+period_dates['1'][:5]
+```
+
+Output:
+```
+['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04', '2018-01-05']
+```
+
+Assume something akin to the following dataframe as your corpus with example column names:
+```python
+df_all[['id', 'date', 'user_id', 'username', 'tweet', 'mentions', 'retweets_count', 'hashtags', 'link']]
+```
+
+Sample the corpus. 
+
+Args:
+   - network: Dict. Each community across periods edge and node data.
+   - corpus: DataFrame.
+   - period_dates: Dict of lists.
+   - sample_size: Integer.
+   - random: Boolean. True pulls randomized sample. False pulls top x tweets.
+Return:
+   - Dict of DataFrames. Sample of content in each module per period
+
+```python
+dict_samples = nttc.infomap_content_sampler( 
+                    dict_full['network'], 
+                    sample_size=50,
+                    period_dates=period_dates,
+                    corpus=df_selected,
+                    random=False)
+```
+
+Sample output:
+```
+Sampling from period 1
+Module 1 sample size: 50
+Module 2 sample size: 50
+Module 3 sample size: 50
+Module 4 sample size: 0
+Module 5 sample size: 50
+Module 6 sample size: 44
+Module 7 sample size: 29
+Module 8 sample size: 12
+Module 9 sample size: 40
+Module 10 sample size: 50
+
+
+Sampling from period 2
+Module 1 sample size: 50
+...
+```
+
+```python
+dict_samples['2']['2']['sample'][:2]
+```
+
+```
+date	hashtags	id	link	mentions	retweets_count	tweet	user_id	username
+7	2018-05-17	['#hashtag1', '#hashtag2', '#hashtag3']	837595843959	https://twitter.com/username1/status/222222	['username3']	1537	When's the last time we had a President actually...	555555	username1
+0	2018-04-06	[]	4646474647474647	https://twitter.com/username5/status/5555555665	['username3']	271	I love getting messages like this from @POTUS ...	43287346745	username5
+```
+
+Now you can export them as desired.

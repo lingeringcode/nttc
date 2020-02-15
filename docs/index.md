@@ -191,6 +191,28 @@ Organizes infomap .ftree network edge and node data into Dict.
               }
           }</pre>
 
+### ```infomap_content_sampler```
+
+Sample content in each period per module, based on map equation flow-based community detection. Takes
+  - Args:
+      - network: Dict. Each community across periods edge and node data.
+      - corpus: DataFrame.
+      - period_dates: Dict of lists.
+      - sample_size: Integer.
+      - random: Boolean. True pulls randomized sample. False pulls top x tweets.
+  - Return:
+      - Dict of DataFrames. Sample of content in each module per period
+
+### ```ic_sample_getter```
+
+Samples corpus based on module edge data from infomap data. 
+  - Args:
+      - sample_size: Integer. Number of edges to sample.
+      - edges: List of Dicts. Edge data.
+      - period_corpus: DataFrame. Content corpus to be sampled.
+  - Return:
+      - DataFrame. Sampled content, based on infomap module edges.
+
 ### ```ranker```
 
 Appends rank and percentages at different aggregate levels.
