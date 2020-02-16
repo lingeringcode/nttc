@@ -306,7 +306,7 @@ Output:
 ['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04', '2018-01-05']
 ```
 
-Assume something akin to the following dataframe as your corpus with example column names:
+LIMITATION: **It currently assumes the following column types and order**:
 ```python
 df_all[['id', 'date', 'user_id', 'username', 'tweet', 'mentions', 'retweets_count', 'hashtags', 'link']]
 ```
