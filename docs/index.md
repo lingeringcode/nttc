@@ -213,6 +213,17 @@ Samples corpus based on module edge data from infomap data.
   - Return:
       - DataFrame. Sampled content, based on infomap module edges.
 
+### ```infomap_edges_sampler```
+
+Sample edges in each period per module, based on map equation flow-based community detection.
+  - Args:
+      - network: Dict. Each module edges data across periods edge and node data.
+      - sample_size: Integer.
+      - column_name: String. Name of desired column to sample.
+      - random: Boolean. True pulls randomized sample. False pulls top x tweets.
+  - Return:
+      - Dict of DataFrames. Sample of content in each module per period
+
 ### ```ranker```
 
 Appends rank and percentages at different aggregate levels.

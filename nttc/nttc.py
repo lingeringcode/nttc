@@ -1211,10 +1211,60 @@ def infomap_content_sampler(network, sample_size, period_dates, corpus, random=F
                 try:
                     print('Module', m, 'sample size:', len(sample))
                 except TypeError as e:
-                    print('Module', m, 'sample size: 0')
+                    print(e, 'Module', m, 'sample size: 0')
                 dict_samples[p][m]['sample'] = sample
             print('\n')
                 
+        return dict_samples
+
+'''
+    infomap_edges_sampler: Sample edges in each period per module, based on
+        map equation flow-based community detection.
+        Args:
+            - network: Dict. Each module edges data across periods edge and node data.
+            - sample_size: Integer.
+            - column_name: String. Name of desired column.
+            - random: Boolean. True pulls randomized sample. False pulls top x tweets.
+        Return:
+            - Dict of DataFrames. Sample of content in each module per period       
+'''
+def infomap_edges_sampler(network, sample_size, column_name, random=False):
+    dict_samples = {}
+    if random == False:
+        for p in network:
+            dict_samples[p] = {}
+            print('Sampling from period', p)
+            for m in network[p]:
+                dict_samples[p][m] = {}
+                # Remove duplicate usernames, before sampling
+                no_dupes = network[p][m]['edges'].drop_duplicates(subset=column_name,keep='first')
+                
+                ss_length = len(no_dupes)
+                sample_col_name = 'sample_'+column_name
+                if ss_length < sample_size:
+                    df_sample = no_dupes[:ss_length]
+                    dict_samples[p][m][sample_col_name] = df_sample[column_name]
+                if ss_length > sample_size:
+                    df_sample = no_dupes[:sample_size]
+                    dict_samples[p][m][sample_col_name] = df_sample[column_name]
+        return dict_samples
+    if random == True:
+        for p in network:
+            dict_samples[p] = {}
+            print('Sampling from period', p)
+            for m in network[p]:
+                dict_samples[p][m] = {}
+                # Remove duplicate usernames, before sampling
+                no_dupes = network[p][m]['edges'].drop_duplicates(subset=column_name,keep='first')
+                
+                ss_length = len(no_dupes)
+                sample_col_name = 'sample_'+column_name
+                if ss_length < sample_size:
+                    df_sample = no_dupes.sample(n=ss_length, random_state=1)
+                    dict_samples[p][m][sample_col_name] = df_sample[column_name]
+                if ss_length > sample_size:
+                    df_sample = no_dupes.sample(n=sample_size, random_state=1)
+                    dict_samples[p][m][sample_col_name] = df_sample[column_name]
         return dict_samples
 
 ##################################################################

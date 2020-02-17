@@ -362,3 +362,42 @@ date	hashtags	id	link	mentions	retweets_count	tweet	user_id	username
 ```
 
 Now you can export them as desired.
+
+## Sample edge source username's
+
+```python
+edge_samples = infomap_edges_sampler( 
+                    dict_full['network'], 
+                    sample_size=50,
+                    column_name='source_name',
+                    random=True) #Set to randomized
+```
+
+Output:
+
+```
+Sampling from period 1
+Sampling from period 2
+Sampling from period 3
+Sampling from period 4
+Sampling from period 5
+Sampling from period 6
+Sampling from period 7
+Sampling from period 8
+Sampling from period 9
+Sampling from period 10
+```
+
+Sampled output:
+```python
+edge_samples['1']['1']['sample_source_name'][:5]
+```
+
+```
+0     username1
+10     username2
+22     username3
+45     username4
+67     username5
+...
+```
