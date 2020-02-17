@@ -363,7 +363,7 @@ date	hashtags	id	link	mentions	retweets_count	tweet	user_id	username
 
 Now you can export them as desired.
 
-## Sample edge source username's
+## Sample edge source usernames
 
 ```python
 edge_samples = infomap_edges_sampler( 
