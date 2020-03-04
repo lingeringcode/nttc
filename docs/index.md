@@ -155,84 +155,91 @@ Helper function for batch_map. Parses each line in the file and returns a list o
 ### ```batch_map```
 
 Retrieves all map files in a single directory. It assumes that you have only the desired files in said directory. Returns a dict of each files based on their naming scheme with custom regex pattern. Each key denotes the file and its values are list of lists, where each sublist is a lines in the file.
-  - ```regex```= Regular expression for filename scheme
-  - ```path```= String. Path for directory with .map or .ftree files
+
+- ```regex```= Regular expression for filename scheme
+- ```path```= String. Path for directory with .map or .ftree files
 
 ### ```networks_controller```
 
-Uses Dict data structure hydrated from the following functions
-  - .batch_map()
-  - .ftree_edge_maker(), and
-  - .infomap_hub_maker().
+Uses Dict data structure hydrated from the following functions:
+
+- .batch_map()
+- .ftree_edge_maker(), and
+- .infomap_hub_maker().
 
 It appends node names to edge data and also creates a node list for each module.
-  - Args:
-      - p_sample: Integer. Number of desired periods to sample.
-      - m_sample: Integer. Number of desired modules to sample.
-      - Dict. Output from batch_map(), ftree_edge_maker(), and
-          infomap_hub_maker(), which includes.
-          - DataFrame. Module edge data.
-          - DataFrame. Module node data with names.
-  - Return:
-      - dict_network: Appends more accessible edge and node data.
+
+- Args:
+    - p_sample: Integer. Number of desired periods to sample.
+    - m_sample: Integer. Number of desired modules to sample.
+    - Dict. Output from batch_map(), ftree_edge_maker(), and
+        infomap_hub_maker(), which includes.
+        - DataFrame. Module edge data.
+        - DataFrame. Module node data with names.
+- Return:
+    - dict_network: Appends more accessible edge and node data.
 
 ### ```network_organizer```
 
 Organizes infomap .ftree network edge and node data into Dict.
-  - Args:
-      - m_edges: DataFrame. Per period module edge data
-      - m_mod: List of Dicts. Per period list of module data 
-  - Return:
-      - return_dict: Dict. Network node and edge data with names:<pre>
-          { 
-              return_dict: {
-                  'nodes': DataFrame,
-                  'edges': Dataframe
-              }
-          }</pre>
+
+- Args:
+    - m_edges: DataFrame. Per period module edge data
+    - m_mod: List of Dicts. Per period list of module data 
+- Return:
+    - return_dict: Dict. Network node and edge data with names:<pre>
+        { 
+            return_dict: {
+                'nodes': DataFrame,
+                'edges': Dataframe
+            }
+        }</pre>
 
 ### ```infomap_content_sampler```
 
-Sample content in each period per module, based on map equation flow-based community detection. Takes
-  - Args:
-      - network: Dict. Each community across periods edge and node data.
-      - corpus: DataFrame.
-      - period_dates: Dict of lists.
-      - sample_size: Integer.
-      - random: Boolean. True pulls randomized sample. False pulls top x tweets.
-  - Return:
-      - Dict of DataFrames. Sample of content in each module per period
+Sample content in each period per module, based on map equation flow-based community detection.
+- Args:
+    - network: Dict. Each community across periods edge and node data.
+    - corpus: DataFrame.
+    - period_dates: Dict of lists.
+    - sample_size: Integer.
+    - random: Boolean. True pulls randomized sample. False pulls top x tweets.
+- Return:
+    - Dict of DataFrames. Sample of content in each module per period
 
 ### ```ic_sample_getter```
 
-Samples corpus based on module edge data from infomap data. 
-  - Args:
-      - sample_size: Integer. Number of edges to sample.
-      - edges: List of Dicts. Edge data.
-      - period_corpus: DataFrame. Content corpus to be sampled.
-  - Return:
-      - DataFrame. Sampled content, based on infomap module edges.
+Samples corpus based on module edge data from infomap data.
+
+- Args:
+    - sample_size: Integer. Number of edges to sample.
+    - edges: List of Dicts. Edge data.
+    - period_corpus: DataFrame. Content corpus to be sampled.
+- Return:
+    - DataFrame. Sampled content, based on infomap module edges.
 
 ### ```infomap_edges_sampler```
 
 Sample edges in each period per module, based on map equation flow-based community detection.
-  - Args:
-      - network: Dict. Each module edges data across periods edge and node data.
-      - sample_size: Integer.
-      - column_name: String. Name of desired column to sample.
-      - random: Boolean. True pulls randomized sample. False pulls top x tweets.
-  - Return:
-      - Dict of DataFrames. Sample of content in each module per period
+
+- Args:
+    - network: Dict. Each module edges data across periods edge and node data.
+    - sample_size: Integer.
+    - column_name: String. Name of desired column to sample.
+    - random: Boolean. True pulls randomized sample. False pulls top x tweets.
+- Return:
+    - Dict of DataFrames. Sample of content in each module per period
 
 ### ```ranker```
 
 Appends rank and percentages at different aggregate levels.
-    - Args:
-        - ```rank_type```= String. Argument option for type of ranking to conduct. Currently only per_hub.
-        - ```tdhn```= Dict of corpus. Traverses the 'info_hub'
-    - Return
-        - ```tdhn```= Updated 'info_hub' with 'percentage_total' per hub and 'spot' for each node per hub,
-    - TODO: Add per_party and per_hubname
+
+- Args:
+    - ```rank_type```= String. Argument option for type of ranking to conduct. Currently only per_hub.
+    - ```tdhn```= Dict of corpus. Traverses the 'info_hub'
+- Return
+    - ```tdhn```= Updated 'info_hub' with 'percentage_total' per hub and 'spot' for each node per hub,
+- TODO: Add per_party and per_hubname
 
 ### ```append_rank```
 
@@ -241,82 +248,93 @@ Helper function for ranker(). It appends the rank number for the 'spot' value.
 ### ```append_percentages```
 
 Helper function for ranker(). Appends each node's total_percentage to the list
-    - Args:
-        - ``rl``= List of lists. Ranked list of nodes per hub
+
+- Args:
+    - ``rl``= List of lists. Ranked list of nodes per hub
 
 ### ```score_summer```
 
 Tally scores from each module per period and append a score_total to each node instance per module for every period.
-    - Args:
-        - ```dhn```= Dict of hubs returned from info_hub_maker
+
+- Args:
+    - ```dhn```= Dict of hubs returned from info_hub_maker
 
 ### ```get_period_flow_total```
 
 Helper function for score_summer. Tallies scores per Period across hubs.
-  - Args:
-      - ```lpt```= List. Contains hub totals per Period.
-  - Return
-      - Float. Total flow score for a Period.
+
+- Args:
+    - ```lpt```= List. Contains hub totals per Period.
+- Return
+    - Float. Total flow score for a Period.
 
 ### ```get_score_total```
 
 Helper function for score_summer. Tallies scores per Hub.
-    - Args:
-        - ```list_nodes```= List of Dicts
-    - Return
-        - ```total```= Float. Total flow score for a Hub.
+
+- Args:
+    - ```list_nodes```= List of Dicts
+- Return
+    - ```total```= Float. Total flow score for a Hub.
 
 ### ```infomap_hub_maker```
 
 Takes fully hydrated Dict of the ```map``` or ```ftree``` files and parses its Nodes into per Period and Module Dicts.
-  - Args: 
-      - ```file_type```= String. 'map' or 'ftree' file type designation
-      - ```dict_map```= Dict of map files
-      - ```mod_sample_size```= Integer. Number of modules to sample
-      - ```hub_sample_size```= Integer. number of nodes to sample for "hub" of each module
-  - Output:
-      - ```dict_map```= Dict with new ```info_hub``` key hydrated with hubs
+
+- Args: 
+    - ```file_type```= String. 'map' or 'ftree' file type designation
+    - ```dict_map```= Dict of map files
+    - ```mod_sample_size```= Integer. Number of modules to sample
+    - ```hub_sample_size```= Integer. number of nodes to sample for "hub" of each module
+- Output:
+    - ```dict_map```= Dict with new ```info_hub``` key hydrated with hubs
 
 ### ```output_infomap_hub```
 
 Takes fully hydrated infomap dict and outputs it as a CSV file.
-  - Args: 
-      - ```header```= column names for DataFrame and CSV; 
-          - Assumes they're in order with period and hub in first and second position
-      - ```dict_hub```= Hydrated Dict of hubs
-      - ``path``= Output path
-      - ``file``= Output file name
+
+- Args: 
+    - ```header```= column names for DataFrame and CSV; 
+        - Assumes they're in order with period and hub in first and second position
+    - ```dict_hub```= Hydrated Dict of hubs
+    - ``path``= Output path
+    - ``file``= Output file name
 
 ### ```sampling_module_hubs```
 
 Compares hub set with tweet data to ultimately output sampled tweets with hub information.
-  * Args:
-    * ```period_dates```: Dict of lists that include dates for each period of the corpus
-    * ```period_check```: String for option: Check against 'single' or 'multiple'
-    * ```period_num```: Integer. If period_check == 'single', provide integer of period number.
-    * ```df_all_tweets```: Pandas DataFrame of tweets
-    * ```df_hubs```: Pandas DataFrame of infomapped hubs
-    * ```top_rts_sample```: Integer of desired sample size of sorted top tweets (descending order)
-    * ```hub_sample```: Integer of desired sample size to output
-    * ```columns```: List of column names; each as a String. **Must match column names from tweet and hub data sets
-  * Returns DataFrame of top sampled tweets
 
-### ```add_infomap```: Helper function for ```sampling_module_hubs```. It cross-references the sampled .
-  * Args:
-    * dft: DataFrame of sampled tweet data
-    * dfh: Full DataFrame of hubs data
-    * period_num: Integer of particular period number
-  * Returns List of Dicts with hub and info_name mentions info
+* Args:
+  * ```period_dates```: Dict of lists that include dates for each period of the corpus
+  * ```period_check```: String for option: Check against 'single' or 'multiple'
+  * ```period_num```: Integer. If period_check == 'single', provide integer of period number.
+  * ```df_all_tweets```: Pandas DataFrame of tweets
+  * ```df_hubs```: Pandas DataFrame of infomapped hubs
+  * ```top_rts_sample```: Integer of desired sample size of sorted top tweets (descending order)
+  * ```hub_sample```: Integer of desired sample size to output
+  * ```columns```: List of column names; each as a String. **Must match column names from tweet and hub data sets
+* Returns DataFrame of top sampled tweets
+
+### ```add_infomap```: 
+
+Helper function for ```sampling_module_hubs```. It cross-references the sampled.
+
+* Args:
+  * ```dft```: DataFrame of sampled tweet data
+  * ```dfh```: Full DataFrame of hubs data
+  * ```period_num```: Integer of particular period number
+* Returns List of Dicts with hub and info_name mentions info
 
 ### ```batch_output_period_hub_samples```
 
 Periodic batch output that saves sampled tweets as a CSV. Assumes successively numbered periods.
-  * Args:
-    * module_output: DataFrame of tweet sample data per Period per Module
-    * period_total: Interger of total number of periods
-    * file_ext: String of desired filename extension pattern
-    * period_path: String of desired path to save the files
-  * Returns nothing
+
+* Args:
+  * module_output: DataFrame of tweet sample data per Period per Module
+  * period_total: Interger of total number of periods
+  * file_ext: String of desired filename extension pattern
+  * period_path: String of desired path to save the files
+* Returns nothing
 
 ## periodObject Functions
 
@@ -333,20 +351,81 @@ Periodic batch output that saves sampled tweets as a CSV. Assumes successively n
 
 ## communitiesObject Functions
 
-* ```create_hub_csv_files```: Writes all of the objects' top rt'd/mentions information as a CSV of "hubs"
-* ```get_comm_nums```: Filters Dataframe column community values into a List.
-* ```get_all_comms```: Slice the full set to community and their respective tweets. Arguments: Full dataframe, strings of column names for community and tweets.
-* ```comm_dict_writer```: Writes per Community tweets into a dictionary.
-* ```split_community_tweets```: Isolates community's tweets, then splits string into list of strings per Tweet preparing them for the topic modeling. Returns as Dataframe of tweets for resepective community.
-* ```clean_split_docs```: Removes punctuation, makes lowercase, removes stopwords, and converts into dataframe for topic modeling.
-* ```tm_maker```: Creates data for TM and builds an LDA TM.
-* ```get_hubs_top_rts```: Appends hubs' top 10 RT'd tweets and usernames to respective period and community object.
-  - Args:
-    - Dataframe of hub top mentions,
-    - Dict of Objects with .top_rts,
-    - String of period number
-  - Returns: Dict Object with new .top_rts per Object
-* ```get_hubs_mentions```: Appends hubs' mentions data to respective period and community object.
+### ```create_hub_csv_files```
+
+Writes all of the objects' top rt'd/mentions information as a CSV of "hubs".
+
+### ```get_comm_nums```
+
+Filters Dataframe column community values into a List.
+
+### ```get_all_comms```
+
+Slice the full set to community and their respective tweets.
+
+- Args: 
+    - ```dft```: Dataframe
+    - ```col_community```: String. Column name for community
+    - ```col_tweets```: String. Column name for tweet content
+
+### ```comm_dict_writer```
+
+Write per Community content segments into a dictionary.
+
+- Args:
+    - ```comm_list```= List of community numbers / labels
+    - ```df_content```= DataFrame of data set in question
+    - ```comm_col```= String of column name for community/module
+    - ```content_col```= Sring of column name for content to parse and examine
+    - ```sample_size_percentage```= Desired percentage to sample from full set
+- Returns Dict of sliced DataFrames (value) as per their community/module (key)
+
+### ```split_community_tweets```
+
+Isolates community's content, then splits string into list of strings per Tweet preparing them for the topic modeling.
+
+- Args: 
+  - ```col_name```: String. Community label as String, 
+  - ```dict_comm_obj```: Dict of community objects
+  - ```sample_size_percentage```: Float. Between 0 and 1. 
+- Returns as Dataframe of content for respective community
+
+```clean_split_docs```
+
+Removes punctuation, makes lowercase, removes stopwords, and converts into dataframe for topic modeling.
+
+### ```tm_maker```
+
+Creates data for TM and builds an LDA TM.
+
+- Args: Pass many of the gensim LDATopicModel() object arguments here, plus some helpers. See their documentation for more details (https://radimrehurek.com/gensim/models/ldamodel.html).
+  - random_seed: Integer. Value for randomized seed.
+  - single: Boolean. True assumes only one period of data being evaluated.
+  - split_comms: 
+      - If 'single' False, Dict of objects with respective TM data.
+      - If 'single' True, object with TM data
+  - num_topics: Integer. Number of topics to produce (k value)
+  - random_state: Integer. Introduce random runs.
+  - update_every: Integer. "Number of documents to be iterated through for each update. Set to 0 for batch learning, > 1 for online iterative learning."
+  - chunksize: Integer. "Number of documents to be used in each training chunk."
+  - passes: Integer. "Number of passes through the corpus during training."
+  - alpha: String. Pass options available via gensim package
+  - per_word_topics: Boolean. 
+- Returns: Either updated Dict of objects, or single Dict. Now ready for visualization or printing.
+
+### ```get_hubs_top_rts```
+
+Appends hubs' top 10 RT'd tweets and usernames to respective period and community object.
+
+- Args:
+  - Dataframe of hub top mentions,
+  - Dict of Objects with .top_rts,
+  - String of period number
+- Returns: Dict Object with new .top_rts per Object
+
+### ```get_hubs_mentions```
+
+Appends hubs' mentions data to respective period and community object.
   - Args:
     - Dataframe of hub mentions,
     - Dict of Objects,
@@ -354,45 +433,65 @@ Periodic batch output that saves sampled tweets as a CSV. Assumes successively n
     - String of period number,
     - String of column name for the community number
   - Returns: Dict Object with new .top_mentions per Object
-* ```merge_rts_mentions```: Merges hubs' sources and mentions data as a full list per Community.
+
+### ```merge_rts_mentions```
+
+Merges hubs' sources and mentions data as a full list per Community.
 
 ## communityGroupsObject Functions
 
-* ```matching_dict_processor```: Processes input dataframe of network community hubs for use in the tsm.match_communities() function.
-    - Args: A dataframe with Period, Period_Community (1_0), and top mentioned (highest in-degree) users
-    - Returns: Dictionary of per Period with per Period_Comm hub values as lists:<pre>
-            {'1': {'1_0': ['nancypelosi',
-               'chuckschumer',
-               'senfeinstein',
-               'kamalaharris',
-               'barackobama',
-               'senwarren',
-               'hillaryclinton',
-               'senkamalaharris',
-               'repadamschiff',
-               'corybooker'],
-               ...
-               },
-               ...
-               '10': {'10_3': [...] }
-            }</pre>
-* ```match_maker```: Takes period dict from matching_dict_processor() and submits to tsm.match_communities() method. Assigns, filters, and sorts the returned values into
-    - Args: Dictionary of per Period with per Period_Comm hub values as lists; filter_jacc threshold value (float) between 0 and 1.
-    - Returns: List of tuples: period_communityxperiod_community, JACC score<pre>
-            [('1_0x4_0', 0.4286),
-            ('1_0x2_11', 0.4615),
-            ('1_0x3_5', 0.4615),
-            ... ]</pre>
-* ```plot_bar_from_counter```: Plot the community comparisons as a bar chart.
-    - Args:
-      - ax=None # Resets the chart
-      - counter = List of tuples returned from match_maker(),
-      - path = String of desired path to directory,
-      - output = String value of desired file name (.png)
-    - Returns: Nothing.
-* ```community_grouper()```: Controller function for process to group together communities found to be similar across periods in the corpus. It uses the 1) group_reader() and 2) final_grouper() functions to complete this categorization process.
-    - Args: Accepts the network object (net_obj) with the returned value from nttc.match_maker(), which should be saved as .sorted_filtered_comms property: a list of tuples with sorted and filtered community pairs and their score, but it only uses the community values.
-    - Returns: A list of sets, where each set is a grouped recurrent community: For example, 1_0, where 1 is the period, and 0 is the designated community number.<pre>
+### ```matching_dict_processor```
+
+Processes input dataframe of network community hubs for use in the tsm.match_communities() function.
+
+- Args: A dataframe with Period, Period_Community (1_0), and top mentioned (highest in-degree) users
+- Returns: Dictionary of per Period with per Period_Comm hub values as lists:<pre>
+        {'1': {'1_0': ['nancypelosi',
+           'chuckschumer',
+           'senfeinstein',
+           'kamalaharris',
+           'barackobama',
+           'senwarren',
+           'hillaryclinton',
+           'senkamalaharris',
+           'repadamschiff',
+           'corybooker'],
+           ...
+           },
+           ...
+           '10': {'10_3': [...] }
+        }</pre>
+
+### ```match_maker```
+
+Takes period dict from matching_dict_processor() and submits to tsm.match_communities() method. Assigns, filters, and sorts the returned values into a list or tuples with findings.
+
+- Args: 
+  - Dictionary of per Period with per Period_Comm hub values as lists; 
+  - filter_jacc threshold value (float) between 0 and 1.
+- Returns: List of tuples: period_communityxperiod_community, JACC score<pre>
+        [('1_0x4_0', 0.4286),
+        ('1_0x2_11', 0.4615),
+        ('1_0x3_5', 0.4615),
+        ... ]</pre>
+
+### ```plot_bar_from_counter```
+
+Plot the community comparisons as a bar chart.
+
+- Args:
+  - ```ax=None``` # Resets the chart
+  - ```counter``` = List of tuples returned from match_maker(),
+  - ```path``` = String of desired path to directory,
+  - ```output``` = String value of desired file name (.png)
+- Returns: Nothing.
+
+### ```community_grouper()```
+
+Controller function for process to group together communities found to be similar across periods in the corpus. It uses the 1) group_reader() and 2) final_grouper() functions to complete this categorization process.
+
+- Args: Accepts the network object (net_obj) with the returned value from nttc.match_maker(), which should be saved as .sorted_filtered_comms property: a list of tuples with sorted and filtered community pairs and their score, but it only uses the community values.
+- Returns: A list of sets, where each set is a grouped recurrent community: For example, 1_0, where 1 is the period, and 0 is the designated community number.<pre>
 [{'1_8', '2_18'},
  {'3_7', '4_2'},
  {'7_11', '8_0'},
@@ -402,13 +501,22 @@ Periodic batch output that saves sampled tweets as a CSV. Assumes successively n
  {'10_6', '1_2', '2_4', '3_4', '4_13', '5_6', '6_5', '7_4', '8_7', '9_0'},
  {'10_0', '1_12', '2_6', '3_0', '4_5', '5_7', '6_6', '7_3', '8_9', '9_5'}]
     </pre>
-    - <strong>NOTE</strong>: <em>This algorithm isn't perfect. It needs some refinement, since it may output some overlaps. However, it certainly filters down the potential persistent communities with either top_mentions or top_rters across periods, so it saves you some manual comparative analysis labor.</em>
-* ```group_reader()```: Takes the period_community pairs and appends to dict if intersections occur. However, the returned dict requires furter analysis and processing, due to unknown order and content from the sorted and filtered communities, which is why they are then sent to the final_grouper by community_grouper, after completion here.
-    - Args: Accepts the initial group dict, which is cross-referenced by the pair of period_community values extracted via a regex expression.
-    - Returns: A dict of oversaturated comparisons, which are sent to final_grouper() for final analysis, reduction, and completion.
-* ```final_grouper()```: Takes the period_community dictionaries and tests for their intersections. Then, it takes any intersections and joins them with .union and appends them into a localized running list, which will all be accrued in a running master list of that community. From there, each community result will be sorted by their length in descending order.
-    - Args: Accepts the group dict from group_reader().
-    - Returns: A dict of all unique period_community elements (2 or more) found to be similar.
+- <strong>NOTE</strong>: <em>This algorithm isn't perfect. It needs some refinement, since it may output some overlaps. However, it certainly filters down the potential persistent communities with either top_mentions or top_rters across periods, so it saves you some manual comparative analysis labor.</em>
+
+### ```group_reader()```
+
+Takes the period_community pairs and appends to dict if intersections occur. However, the returned dict requires furter analysis and processing, due to unknown order and content from the sorted and filtered communities, which is why they are then sent to the ```final_grouper``` by ```community_grouper```, after completion here.
+
+- Args: 
+  - Accepts the initial group dict, which is cross-referenced by the pair of period_community values extracted via a regex expression.
+- Returns: A dict of oversaturated comparisons, which are sent to final_grouper() for final analysis, reduction, and completion.
+
+### ```final_grouper()```
+
+Takes the period_community dictionaries and tests for their intersections. Then, it takes any intersections and joins them with .union and appends them into a localized running list, which will all be accrued in a running master list of that community. From there, each community result will be sorted by their length in descending order.
+
+- Args: Accepts the group dict from group_reader().
+- Returns: A dict of all unique period_community elements (2 or more) found to be similar.
 
 ## Distribution update terminal commands
 

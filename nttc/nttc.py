@@ -1510,8 +1510,11 @@ def create_hub_csv_files(**kwargs):
     print('File written to system.')
 
 '''
-    Slice the full set to community and their respective tweets
-        # Takes full dataframe, strings of column names for community and tweets
+    get_all_comms: Slice the full set to community and their respective tweets. 
+    - Args: 
+        - dft: Dataframe
+        - col_community: String. Column name for community
+        - col_tweets: String. Column name for tweet content
 '''
 def get_all_comms(dft, col_community, col_tweets):
     acts = dft.loc[:, lambda dft: [col_community, col_tweets]] # all tweets per Community
@@ -1526,7 +1529,6 @@ def get_all_comms(dft, col_community, col_tweets):
         - content_col= Sring of column name for content to parse and examine
         - sample_size_percentage= Desired percentage to sample from full set
     - Returns Dict of sliced DataFrames (value) as per their community/module (key)
-
 '''
 def comm_dict_writer(**kwargs):
     dict_c = {}
@@ -1547,7 +1549,7 @@ def comm_dict_writer(**kwargs):
             - col_name: String. Community label as String, 
             - dict_comm_obj: Dict of community objects
             - sample_size_percentage: Float. Between 0 and 1. 
-        Returns as Dataframe of content for resepective community
+        Returns as Dataframe of content for respective community
 '''
 def split_community_tweets(**kwargs):
     for cdf in kwargs['dict_comm_obj']:
@@ -1621,7 +1623,21 @@ def clean_split_docs(pcpd):
     return p_clean_docs
 
 '''
-    Functions to create data for TM
+    tm_maker: Create data for TM.
+    - Args: Pass many of the gensim LDATopicModel() object arguments here, plus some helpers. See their documentation for more details (https://radimrehurek.com/gensim/models/ldamodel.html).
+        - random_seed: Integer. Value for randomized seed.
+        - single: Boolean. True assumes only one period of data being evaluated.
+        - split_comms: 
+            - If 'single' False, Dict of objects with respective TM data.
+            - If 'single' True, object with TM data
+        - num_topics: Integer. Number of topics to produce (k value)
+        - random_state: Integer. Introduce random runs.
+        - update_every: Integer. "Number of documents to be iterated through for each update. Set to 0 for batch learning, > 1 for online iterative learning."
+        - chunksize: Integer. "Number of documents to be used in each training chunk."
+        - passes: Integer. "Number of passes through the corpus during training."
+        - alpha: String. Pass options available via gensim package
+        - per_word_topics: Boolean. 
+    - Returns: Either updated Dict of objects, or single Dict. Now ready for visualization or printing.
 '''
 def tm_maker(**kwargs):
     np.random.seed(kwargs['random_seed'])
@@ -1829,7 +1845,7 @@ def matching_dict_processor(**kwargs):
 
 '''
     Takes period dict from matching_dict_processor() and submits to tsm.match_communities() method.
-    Assigns, filters, and sorts the returned values into
+    Assigns, filters, and sorts the returned values into a list or tuples with findings.
         -- Args: Dictionary of per Period with per Period_Comm hub values as lists; filter_jacc threshold value (float) between 0 and 1.
         -- Returns: List of tuples: period_communityxperiod_community, JACC score
             [('1_0x4_0', 0.4286),
