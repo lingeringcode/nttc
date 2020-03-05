@@ -31,6 +31,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 * gensim
 * spacy
 * re
+* tqdm
 
 ## Installation
 ```pip install nttc```
@@ -210,14 +211,22 @@ Sample content in each period per module, based on map equation flow-based commu
 
 ### ```ic_sample_getter```
 
-Samples corpus based on module edge data from infomap data.
-
+Samples corpus based on module edge data from infomap data. **NOTE**: It currently assumes the following column types in this exact order:
+  - 'id', 'date', 'user_id', 'username', 'tweet', 'mentions', 'retweets_count', 'hashtags', 'link'
+  - **TODO: Change column lookup and appending process to be flexible for user's needs.
+    
 - Args:
-    - sample_size: Integer. Number of edges to sample.
-    - edges: List of Dicts. Edge data.
-    - period_corpus: DataFrame. Content corpus to be sampled.
+  - sample_size: Integer. Number of edges to sample.
+  - edges: List of Dicts. Edge data.
+  - period_corpus: DataFrame. Content corpus to be sampled.
+  - sample_type: String. Option for 
+    - 'modules': Samples tweets based on community module source-target relations.
+    - 'ht_groups': Samples tweets based on use of hashtags. Must provide list of strings.
+  - user_threshold:
+  - random: Boolean. True will randomly sample fully retrieved set of tweet content
+  - ht_list: List of strings. If sampling via hashtag groups, then provide a list of the hashtags. Default is None.
 - Return:
-    - DataFrame. Sampled content, based on infomap module edges.
+  - DataFrame. Sampled content, based on infomap module edges.
 
 ### ```infomap_edges_sampler```
 

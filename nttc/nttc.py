@@ -36,6 +36,7 @@ import emoji
 import string
 import tsm
 import networkx as nx
+from tqdm import tqdm_notebook as tqdm
 
 # Stopwords
 # Import stopwords with nltk.
@@ -656,7 +657,6 @@ def batch_map(**kwargs):
 '''
     network_organizer: Organizes infomap .ftree network edge and node data
         into Dict.
-        
         Args:
             - m_edges: DataFrame. Per period module edge data
             - m_mod: List of Dicts. Per period list of module data 
@@ -678,7 +678,7 @@ def network_organizer(m_edges, m_mod):
     new_dict_edges = []
     return_dict = {}
     eds = m_edges.to_dict('records')
-    for e in eds:
+    for e in tqdm(eds):
         for n in m_mod:
             if str(e['source']) == str(n['node']):
                 e['source_name'] = n['name']
@@ -733,6 +733,7 @@ def networks_controller(p_sample, m_sample, dict_im):
             dict_network['network'][str(p)][str(m)] = nodes_and_edges
             
     return dict_network
+
 '''
     append_percentages: Helper function for ranker(). Appends each node's total_percentage to the list
     - Args:
@@ -1135,55 +1136,110 @@ def batch_output_period_hub_samples(**kwargs):
 
 '''
     ic_sample_getter: Samples corpus based on module edge data from infomap data.
+        **NOTE: It currently assumes the following column types in this exact order:
+        'id', 'date', 'user_id', 'username', 'tweet', 'mentions', 'retweets_count', 'hashtags', 'link'
+        **TODO: Change column lookup and appending process to be flexible for user's needs.
     
     Args:
         - sample_size: Integer. Number of edges to sample.
         - edges: List of Dicts. Edge data.
         - period_corpus: DataFrame. Content corpus to be sampled.
+        - sample_type: String. Option for 
+            - 'modules': Samples tweets based on community module source-target relations.
+            - 'ht_groups': Samples tweets based on use of hashtags. Must provide list of strings.
+        - user_threshold:
+        - random: Boolean. True will randomly sample fully retrieved set of tweet content
+        - ht_list: List of strings. If sampling via hashtag groups, then provide a list of the hashtags. Default is None.
     Return:
         - DataFrame. Sampled content, based on infomap module edges.
 '''
-def ic_sample_getter(sample_size, edges, period_corpus):
+def ic_sample_getter(sample_size, edges, period_corpus, sample_type, user_threshold, random, ht_list=None):
     mod_list_sample = []
-    
-    for c in range(1,(sample_size+1)):
+    l = len(edges)
+    for c in tqdm(range(0, l)):
         try:
             # Based on source - target and dates, search corpus for tweets as DF
             s = edges[c]['source_name']
             t = edges[c]['target_name']
-            sample_content = period_corpus[(s == period_corpus['username'])]
-            for index, row in sample_content.iterrows():
-                m = row['mentions']
-                if isinstance(m, str):
-                    m = ast.literal_eval(m)
-                    if len(m) > 0:
-                        for i in m:
-                            if i == t:
-                                r = {
-                                    'id': int(float(row[0])),
-                                    'date': row[1],
-                                    'user_id': int(float(row[2])),
-                                    'username': row[3],
-                                    'tweet': row[4], 
-                                    'mentions': row[5], 
-                                    'retweets_count': row[6], 
-                                    'hashtags': row[7], 
-                                    'link': row[8]
-                                }
-                                mod_list_sample.append(r)
+            sample_content = period_corpus[period_corpus['username'] == s]
+            if sample_type == 'modules':
+                for index, row in sample_content.iterrows():
+                    m = row['mentions']
+                    if isinstance(m, str):
+                        m = ast.literal_eval(m)
+                        if len(m) > 0:
+                            for i in m:
+                                if i == t:
+                                    r = {
+                                        'id': int(float(row[0])),
+                                        'date': row[1],
+                                        'user_id': int(float(row[2])),
+                                        'username': row[3],
+                                        'tweet': row[4], 
+                                        'mentions': row[5], 
+                                        'retweets_count': row[6], 
+                                        'hashtags': row[7], 
+                                        'link': row[8]
+                                    }
+                                    mod_list_sample.append(r)
+            elif sample_type == 'hashtag_group':
+                for index, row in sample_content.iterrows():
+                    m = row['hashtags']
+                    if isinstance(m, str):
+                        m = ast.literal_eval(m)
+                        if len(m) > 0:
+                            for i in m:
+                                for h in ht_list:
+                                    if i == h:
+                                        r = {
+                                            'id': int(float(row[0])),
+                                            'date': row[1],
+                                            'user_id': int(float(row[2])),
+                                            'username': row[3],
+                                            'tweet': row[4], 
+                                            'mentions': row[5], 
+                                            'retweets_count': row[6], 
+                                            'hashtags': row[7], 
+                                            'link': row[8]
+                                        }
+                                        mod_list_sample.append(r)
+                                        
         except IndexError as e:
             print('\n\nERROR:',e, 'Out of edges to sample.\n\n')
             break
+    # Remove duplicates
+    result_list = [i for n, i in enumerate(mod_list_sample) if i not in mod_list_sample[n + 1:]]
     
-    if len(mod_list_sample) > (sample_size):
-        df_sample = pd.DataFrame(mod_list_sample)
-        sorted_sample = df_sample.sort_values('retweets_count', ascending=False)
-        ss = sorted_sample[:sample_size]
-        return ss
-    elif len(mod_list_sample) < sample_size:
-        df_sample = pd.DataFrame(mod_list_sample)
+    # Sort in Ascending order as per RT count
+    new_result_list = sorted(result_list, key=lambda k: k['retweets_count'], reverse=True)
+    res_list = []
+    for s in new_result_list:
+        if len(res_list) == 0:
+            res_list.append(s)
+        if len(res_list) > 0:
+            user_check = 0
+            for c in res_list:
+                if c['username'] == s['username']:
+                    user_check = user_check + 1
+            # If specific user has not been oversampled
+            if user_check < user_threshold:
+                res_list.append(s)
+    
+    # Add to sample
+    if len(res_list) > (sample_size):
+        df_sample = pd.DataFrame(res_list)
+        if random == True:
+            # Sample it randomly
+            random_sample = df_sample.sample(n=sample_size, random_state=1)
+            return random_sample
+        if random == False:
+            sorted_sample = df_sample.sort_values('retweets_count', ascending=False)
+            ss = sorted_sample[:sample_size]
+            return ss
+    elif len(res_list) < sample_size:
+        df_sample = pd.DataFrame(res_list)
         return df_sample
-        
+       
 '''
     infomap_content_sampler: Sample content in each period per module, based on
         map equation flow-based community detection.
@@ -1196,26 +1252,34 @@ def ic_sample_getter(sample_size, edges, period_corpus):
         Return:
             - Dict of DataFrames. Sample of content in each module per period       
 '''
-def infomap_content_sampler(network, sample_size, period_dates, corpus, random=False):
+def infomap_content_sampler(network, sample_size, period_dates, corpus, sample_type, ht_group, user_threshold, random=False):
     dict_samples = {}
-    if random == False:
-        for p in network:
-            dict_samples[p] = {}
-            print('Sampling from period', p)
-            for m in network[p]:
-                dict_samples[p][m] = {}
-                m_edges = network[p][m]['edges'].to_dict('records') #Dict of module edge data
-                p_dates = period_dates[p] #List of dates for period
-                p_corpus = corpus.loc[corpus['date'].isin(p_dates)]
-                sample = ic_sample_getter(sample_size, m_edges, p_corpus)
-                try:
-                    print('Module', m, 'sample size:', len(sample))
-                except TypeError as e:
-                    print(e, 'Module', m, 'sample size: 0')
+    for p in network:
+        dict_samples[p] = {}
+        print('Sampling from period', p)
+        for m in network[p]:
+            print('Module', m, 'started.')
+            dict_samples[p][m] = {}
+            m_edges = network[p][m]['edges'].to_dict('records') #Dict of module edge data
+            p_dates = period_dates[p] #List of dates for period
+            p_corpus = corpus.loc[corpus['date'].isin(p_dates)]
+            sample = ic_sample_getter(
+                                    sample_size, 
+                                    m_edges, 
+                                    p_corpus,
+                                    sample_type,
+                                    ht_list=ht_group,
+                                    user_threshold=user_threshold,
+                                    random=random)
+            try:
+                print('Module', m, 'sample size:', len(sample))
                 dict_samples[p][m]['sample'] = sample
-            print('\n')
+            except TypeError as e:
+                print(e, 'Module', m, 'sample size: 0')
+            
+        print('\n')
                 
-        return dict_samples
+    return dict_samples
 
 '''
     infomap_edges_sampler: Sample edges in each period per module, based on

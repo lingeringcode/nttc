@@ -33,6 +33,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 * gensim
 * spacy
 * re
+* tqdm
 
 ## Installation
 ```pip install nttc```
