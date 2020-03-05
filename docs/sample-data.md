@@ -6,7 +6,11 @@ Suppose you would like to sample your data to either topic-model or qualitativel
 'dict_full':{
   'network':{
     '1': {
-      '1':
+      '1':{
+        'edges': DataFrame,
+        'nodes': DataFrame
+      },
+      ...
     },
     ...
   },
