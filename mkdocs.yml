@@ -1,7 +1,8 @@
 site_name: NTTC (Name That Twitter Community!)
 nav:
     - Home: index.md
+    - Sampling Community-Detected Data: sample-data.md
     - Topic-Modeling: tm-comm-data.md
-    - Infomap Examples: infomap-examples.md
+    - Processing Infomap data: infomap-examples.md
     - Community Likeness: comm-jacc.md
 theme: readthedocs

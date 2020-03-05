@@ -9,3 +9,4 @@ pprint
 gensim
 spacy
 re
+tqdm
