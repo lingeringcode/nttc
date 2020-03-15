@@ -32,6 +32,11 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 * spacy
 * re
 * tqdm
+* sklearn
+* MulticoreTSNE
+* hdbscan
+* seaborn
+* stop_words
 
 ## Installation
 ```pip install nttc```
