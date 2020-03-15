@@ -196,7 +196,7 @@ Organizes infomap .ftree network edge and node data into Dict.
             }
         }</pre>
 
-### ```infomap_content_sampler```
+### ```content_sampler```
 
 Sample content in each period per module, based on map equation flow-based community detection.
 
@@ -209,7 +209,7 @@ Sample content in each period per module, based on map equation flow-based commu
 - Return:
     - Dict of DataFrames. Sample of content in each module per period
 
-### ```ic_sample_getter```
+### ```sample_getter```
 
 Samples corpus based on module edge data from infomap data. **NOTE**: It currently assumes the following column types in this exact order:
   - 'id', 'date', 'user_id', 'username', 'tweet', 'mentions', 'retweets_count', 'hashtags', 'link'

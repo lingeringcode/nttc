@@ -19,29 +19,44 @@
 # It functions only with Python 3.x and is not backwards-compatible.
 
 # Warning: nttc performs no custom error-handling, so make sure your inputs are formatted properly! If you have questions, please let me know via email.
-from os import listdir
-from os.path import isfile, join
-from pprint import pprint
 import arrow
 import ast
-import csv
-import pandas as pd
 from collections import Counter
-import numpy as np
-import matplotlib.pyplot as plt
-import functools
-import operator
-import re
+import csv
 import emoji
-import string
-import tsm
+import functools
+import hdbscan
+import itertools as it
+import matplotlib.pyplot as plt
+from MulticoreTSNE import MulticoreTSNE as TSNE
 import networkx as nx
+import numpy as np
+import operator
+import os
+from os import listdir
+from os.path import join, isfile
+import pandas as pd
+from pprint import pprint
+import re
+import seaborn as sns
+from sklearn.externals import joblib
+from sklearn.cluster import KMeans
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import silhouette_score
+from sklearn.decomposition import TruncatedSVD
+from stop_words import get_stop_words
+import string
+import sys
 from tqdm import tqdm_notebook as tqdm
+import tsm
+
 
 # Stopwords
 # Import stopwords with nltk.
 import nltk
 from nltk.corpus import stopwords
+from nltk.util import everygrams
+from nltk.tokenize.casual import TweetTokenizer
 
 # Topic-Modeling imports
 from pprint import pprint
@@ -64,10 +79,9 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from nltk.stem import WordNetLemmatizer, SnowballStemmer
 from nltk.stem.porter import *
-import numpy as np
 
 '''
-    See README.md for an overview aand comments for extended explanation.
+    See README.md for an overview and comments for extended explanation.
 '''
 class allPeriodsObject:
     '''an object class with an attribute dict that stores per Period network data of nodes and edges in respective Dataframes'''
@@ -110,11 +124,36 @@ class communityGroupsObject:
         self.groups_mentions = groups_mentions
         self.groups_rters = groups_rters
 
+class clusteringObj:
+    '''object class with attributes for conducting kmeans clustering'''
+    def __init__(self, reduced_sample=None, tokens=None, top_grams=None, unique_obs_cnt=None, 
+                 vector=None, u_map=None, u_users=None, u_texts=None, matrix=None, fit_file=None, 
+                 matrix_2d=None, best_k=None, km_model=None, km_plottable=None):
+        self.reduced_sample = reduced_sample
+        self.tokens = tokens
+        self.top_grams = top_grams
+        self.unique_obs_cnt = unique_obs_cnt
+        self.vector = vector
+        self.u_map = u_map
+        self.u_users = u_users
+        self.u_texts = u_texts
+        self.matrix = matrix
+        self.fit_file = fit_file
+        self.matrix_2d = matrix_2d
+        self.best_k = best_k
+        self.km_model = km_model
+        self.km_plottable = km_plottable
+
 ##################################################################
 
 ## General Functions
 
 ##################################################################
+'''
+    Initialize initializeCluster
+'''
+def initializeCluster():
+    return clusteringObj()
 
 '''
     Initialize allPeriodsObject
@@ -222,6 +261,463 @@ def write_csv(dal, sys_path, __file_path__):
                                 encoding='utf-8',
                                 index=False)
     print(__file_path__, ' written to ', sys_path)
+
+##################################################################
+
+## KMeans Clustering Functions
+##  - Some functions below are modified from the MIT-licensed 
+##      Twitter Dev resource:
+## https://twitterdev.github.io/do_more_with_twitter_data/clustering-users.html
+
+##################################################################
+
+def sample_reducer(sample_type, dict_samples, columns_list):
+    if sample_type == 'single':
+        for m in dict_samples:
+            if len(dict_samples[m]['sample']) > 0:
+                tweet_df = dict_samples[m]['sample'][columns_list]
+                clusterObj = initializeCluster()
+                clusterObj.reduced_sample = tweet_df
+                dict_samples[m]['obj'] = clusterObj
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples[p]:
+                if len(dict_samples[p][m]['sample']) > 0:
+                    tweet_df = dict_samples[p][m]['sample'][columns_list]
+                    clusterObj = initializeCluster()
+                    clusterObj.reduced_sample = tweet_df
+                    dict_samples[p][m]['obj'] = clusterObj
+    
+    return dict_samples
+
+'''
+    replace_urls: Replace URLs in strings. See also: ``bit.ly/PyURLre``
+        Args:
+            in_string (str): string to filter
+            replacement (str or None): replacment text. defaults to '<-URL->'
+
+        Returns:
+            str
+'''
+def replace_urls(in_string, replacement=None):
+    replacement = '<-URL->' if replacement is None else replacement
+    pattern = re.compile('(https?://)?(\w*[.]\w+)+([/?=&]+\w+)*')
+    return re.sub(pattern, replacement, in_string)
+
+def df_datetime_converter(sample_type, dict_samples, col_name):
+    if sample_type == 'single':
+        for m in dict_samples:
+            if 'obj' in dict_samples[m]:
+                dict_samples[m]['obj'].reduced_sample.loc[:, col_name] = pd.to_datetime(
+                    dict_samples[m]['obj'].reduced_sample[col_name]
+                )
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples[p]:
+                if 'obj' in dict_samples[p][m]:
+                    dict_samples[p][m]['obj'].reduced_sample.loc[:, col_name] = pd.to_datetime(
+                        dict_samples[p][m]['obj'].reduced_sample[col_name]
+                    )
+    return dict_samples
+
+def plot_tweet_counts(sample_type, dict_samples, zoom, col_list):
+    if sample_type == 'single':
+        for m in dict_samples:
+            if 'obj' in dict_samples[m]:
+                title = 'Module ' + m + zoom + ' Counts'
+                (dict_samples[m]['obj'].reduced_sample[col_list]
+                    .set_index('date')
+                    .resample(zoom)
+                    .count()
+                    .rename(columns=dict(tweet=title))
+                    .plot()
+                )
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples[p]:
+                if 'obj' in dict_samples[p][m]:
+                    title = 'Period ' + p + ',Module ' + m + ': ' + zoom + ' Counts'
+                    (dict_samples[p][m]['obj'].reduced_sample[col_list]
+                        .set_index('date')
+                        .resample(zoom)
+                        .count()
+                        .rename(columns=dict(tweet=title))
+                        .plot()
+                    )
+
+def get_all_tokens(tweet_list):
+    # concat entire corpus
+    all_text = ' '.join((t for t in tweet_list))
+    # tokenize
+    tokens = (TweetTokenizer(preserve_case=False,
+                            reduce_len=True,
+                            strip_handles=False)
+              .tokenize(all_text))
+    # remove symbol-only tokens for now
+    tokens = [tok for tok in tokens if not tok in string.punctuation]
+    return tokens
+
+def tokenize_em(sample_type, dict_samples, col):
+    if sample_type == 'single':
+        for m in dict_samples:
+            if 'obj' in dict_samples[m]:
+                listicle = dict_samples[m]['obj'].reduced_sample[col].values.tolist()
+                clean_listicle = []
+                for l in listicle:
+                    cl = replace_urls(l)
+                    clean_listicle.append(cl)
+                tokens = get_all_tokens(clean_listicle)
+                print('Total number of tokens: {}'.format(len(tokens)))
+                dict_samples[m]['obj'].tokens = tokens
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples[p]:
+                if 'obj' in dict_samples[p][m]:
+                    listicle = dict_samples[p][m]['obj'].reduced_sample[col].values.tolist()
+                    clean_listicle = []
+                    for l in listicle:
+                        cl = replace_urls(l)
+                        clean_listicle.append(cl)
+                    tokens = get_all_tokens(clean_listicle)
+                    print('Total number of tokens: {}'.format(len(tokens)))
+                    dict_samples[p][m]['obj'].tokens = tokens
+    
+    return dict_samples
+
+def top_gram_counter(sample_type, dict_samples):
+    if sample_type == 'single':
+        for m in dict_samples:
+            if 'obj' in dict_samples[m]:
+                top_grams = Counter(everygrams(dict_samples[m]['obj'].tokens, min_len=2, max_len=4))
+                dict_samples[m]['obj'].top_grams = top_grams
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples[p]:
+                if 'obj' in dict_samples[p][m]:
+                    top_grams = Counter(everygrams(dict_samples[p][m]['obj'].tokens, min_len=2, max_len=4))
+                    dict_samples[p][m]['obj'].top_grams = top_grams
+    
+    return dict_samples
+
+def unique_obs_counter(sample_type, dict_samples):
+    if sample_type == 'single':
+        for m in dict_samples:
+            if 'obj' in dict_samples[m]:
+                unique_obs_cnt = len(set(dict_samples[m]['obj'].reduced_sample['username']))
+                dict_samples[m]['obj'].unique_obs_cnt = unique_obs_cnt
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples[p]:
+                if 'obj' in dict_samples[p][m]:
+                    unique_obs_cnt = len(set(dict_samples[p][m]['obj'].reduced_sample['username']))
+                    dict_samples[p][m]['obj'].unique_obs_cnt = unique_obs_cnt
+    
+    return dict_samples
+
+'''
+    Generates punctuation 'words' up to ``max_length`` characters.
+'''
+def make_punc_stopwords(max_length=4):
+    def punct_maker(length):
+        return ((''.join(x) for x in it.product(string.punctuation,
+                                                repeat=length)))
+    words = it.chain.from_iterable((punct_maker(length)
+                                    for length in range(max_length+1)))
+    return list(words)
+
+'''
+    Convert `in_string` of text to a list of tokens using NLTK's TweetTokenizer
+'''
+def my_tokenizer(in_string):
+    # reasonable, but adjustable tokenizer settings
+    tokenizer = TweetTokenizer(preserve_case=False,
+                               reduce_len=True,
+                               strip_handles=False)
+    tokens = tokenizer.tokenize(in_string)
+    return tokens
+
+def tm_vectorizer(sample_type, dict_samples, stop_words):
+    if sample_type == 'single':
+        for m in dict_samples:
+            if 'obj' in dict_samples[m]:
+                try:
+                    vec = TfidfVectorizer(preprocessor=replace_urls,
+                            tokenizer=my_tokenizer,
+                            stop_words=stop_words,
+                            max_features=dict_samples[m]['obj'].unique_obs_cnt//100,
+                            )
+                    dict_samples[m]['obj'].vector = vec
+                except ValueError as e:
+                    print('\nFor module', m, 'assign as None. ','ValueError ', e)
+                    dict_samples[m]['obj'].vector = None
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples[p]:
+                if 'obj' in dict_samples[p][m]:
+                    try:
+                        vec = TfidfVectorizer(preprocessor=replace_urls,
+                            tokenizer=my_tokenizer,
+                            stop_words=stop_words,
+                            max_features=dict_samples[p][m]['obj'].unique_obs_cnt//100,
+                            )
+                        dict_samples[p][m]['obj'].vector = vec
+                    except ValueError as e:
+                        print('\nFor Period', p, 'Module', m, 'assign as None.', 'ValueError ', e)
+                        dict_samples[m][p]['obj'].vector = None
+    
+    return dict_samples
+
+# {'1234': 'tweeet tweet'}
+def unique_observ_mapper(sample_type, dict_samples, observation, variable):
+    if sample_type == 'single':
+        for m in dict_samples:
+            if 'obj' in dict_samples[m]:
+                # WRITE UNIQUE MAP
+                unique_map = {}
+                for row in dict_samples[m]['obj'].reduced_sample.to_dict('records'):
+                    unique_map.update({
+                        str(row[observation]): row[variable]}
+                    )
+                # WRITE UNIQUE USER AND TEXT LISTS
+                unique_users = []
+                unique_texts = []
+                for user,text in unique_map.items():
+                    unique_users.append(user)
+                    if text is None:
+                        # special case for empty text
+                        text = ''
+                    unique_texts.append(text)
+
+                dict_samples[m]['obj'].u_map = unique_map
+                dict_samples[m]['obj'].u_users = unique_users
+                dict_samples[m]['obj'].u_texts = unique_texts
+                print(
+                    m,
+                    len(dict_samples[m]['obj'].u_map),
+                    len(dict_samples[m]['obj'].u_users),
+                    len(dict_samples[m]['obj'].u_texts)
+                )
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples:
+                if 'obj' in dict_samples[p][m]:
+                    # WRITE UNIQUE MAP
+                    unique_map = {}
+                    for row in dict_samples[p][m]['obj'].reduced_sample.to_dict('records'):
+                        unique_map.update({
+                            str(row[observation]): row[variable]}
+                        )
+                    # WRITE UNIQUE USER AND TEXT LISTS
+                    unique_users = []
+                    unique_texts = []
+                    for user,text in unique_map.items():
+                        unique_users.append(user)
+                        if text is None:
+                            # special case for empty text
+                            text = ''
+                        unique_texts.append(text)
+                    print(
+                        p,m,
+                        len(unique_map),
+                        len(unique_users),
+                        len(unique_texts)
+                    )
+                    dict_samples[p][m]['obj'].u_map = unique_map
+                    dict_samples[p][m]['obj'].u_users = unique_users
+                    dict_samples[p][m]['obj'].u_texts = unique_texts
+    
+    return dict_samples
+
+def calc_matrix(sample_type, dict_samples):
+    if sample_type == 'single':
+        for m in dict_samples:
+            if ('obj' in dict_samples[m]) and (dict_samples[m]['obj'].vector is not None):
+                    dict_samples[m]['obj'].matrix = dict_samples[m]['obj'].vector.fit_transform(
+                        dict_samples[m]['obj'].u_texts
+                    )
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples[p]:
+                if ('obj' in dict_samples[p][m]) and (dict_samples[p][m]['obj'].vector is not None):
+                        dict_samples[p][m]['obj'].matrix = dict_samples[p][m]['obj'].vector.fit_transform(
+                            dict_samples[p][m]['obj'].u_texts
+                        )
+    return dict_samples
+
+def kmeans_plotter(matrix, title, seed):
+    # compare a broad range of ks to start
+    kv1 = int(len(list(matrix)) / 2)
+    kv2 = int(len(list(matrix)) / 6)
+    kv3 = int(len(list(matrix)) / 10)
+    kv4 = int(len(list(matrix)) / 16)
+    kv5 = 2
+    k_list = [kv5,kv4,kv3,kv2,kv1]
+    
+    # filter list for extra large k values
+    kv_list = []
+    for k in k_list:
+        if k < 2000:
+            kv_list.append(k)
+
+    # track a couple of metrics
+    sil_scores = []
+    inertias = []
+
+    # fit the models, save the evaluation metrics from each run
+    for k in tqdm(kv_list):
+        # Append k values to title
+        title = title + ' ' + str(k)
+        print('fitting model for {} clusters'.format(k))
+        model = KMeans(n_clusters=k, n_jobs=-1, random_state=seed)
+        model.fit(matrix)
+        labels = model.labels_
+        sil_scores.append(silhouette_score(matrix, labels))
+        inertias.append(model.inertia_)
+
+    # plot the quality metrics for inspection    
+    fig, ax = plt.subplots(2, 1, sharex=True)
+
+    plt.subplot(211)
+    plt.plot(kv_list, inertias, 'o--')
+    plt.ylabel('inertia')
+    plt.title(title)
+
+    plt.subplot(212)
+    plt.plot(kv_list, sil_scores, 'o--')
+    plt.ylabel('silhouette score')
+    plt.xlabel('k')
+
+def compare_kmeans(sample_type, dict_samples, seed):
+    if sample_type == 'single':
+        for m in dict_samples:
+            if ('obj' in dict_samples[m]) and (dict_samples[m]['obj'].vector is not None):
+                title = 'Module '+m+' Kmeans parameter search'
+                kmeans_plotter(dict_samples[m]['obj'].matrix, title, seed)
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples[p]:
+                if ('obj' in dict_samples[p][m]) and (dict_samples[p][m]['obj'].vector is not None):
+                    title = 'Period '+p+' Module '+m+' Kmeans parameter search'
+                    kmeans_plotter(dict_samples[p][m]['obj'].matrix, title, seed)
+
+def fit_filename_writer(sample_type, dict_samples, file_primer):
+    file = ''
+    if sample_type == 'single':
+        for m in dict_samples:
+            if ('obj' in dict_samples[m]) and (dict_samples[m]['obj'].vector is not None):
+                file = file_primer + m + '_2d.npy'
+                dict_samples[m]['obj'].fit_file = file
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples[p]:
+                if ('obj' in dict_samples[p][m]) and (dict_samples[p][m]['obj'].vector is not None):
+                    file = file_primer + p+m + '_2d.npy'
+                    dict_samples[p][m]['obj'].fit_file = file
+    return dict_samples
+
+def trial_fit_tsne(sample_type, dict_samples, seed):
+    if sample_type == 'single':
+        for m in tqdm(dict_samples):
+            if ('obj' in dict_samples[m]) and (dict_samples[m]['obj'].vector is not None):
+                try:
+                    matrix_2d = np.load(dict_samples[m]['obj'].fit_file)
+                    logging.warning("loading cached TSNE file")
+                    dict_samples[m]['obj'].matrix_2d = matrix_2d
+                except FileNotFoundError:
+                    logging.warning("Fitting TSNE")
+                    tsne = TSNE(n_components=2,
+                                n_jobs=-1,
+                                random_state=seed)
+                    matrix_2d = tsne.fit_transform(dict_samples[m]['obj'].matrix.todense())
+                    dict_samples[m]['obj'].matrix_2d = matrix_2d
+                    np.save(dict_samples[m]['obj'].fit_file, matrix_2d)
+    elif sample_type == 'multiple':
+        for p in tqdm(dict_samples):
+            for m in dict_samples[p]:
+                if ('obj' in dict_samples[p][m]) and (dict_samples[p][m]['obj'].vector is not None):
+                    try:
+                        matrix_2d = np.load(dict_samples[p][m]['obj'].fit_file)
+                        logging.warning("loading cached TSNE file")
+                        dict_samples[p][m]['obj'].matrix_2d = matrix_2d
+                    except FileNotFoundError:
+                        logging.warning("Fitting TSNE")
+                        tsne = TSNE(n_components=2,
+                                    n_jobs=-1,
+                                    random_state=seed)
+                        matrix_2d = tsne.fit_transform(dict_samples[p][m]['obj'].matrix.todense())
+                        dict_samples[p][m]['obj'].matrix_2d = matrix_2d
+                        np.save(dict_samples[p][m]['obj'].fit_file, matrix_2d)
+    return dict_samples
+
+"""
+    get_plottable_df: Combine the necessary pieces of data to create a data structure that plays
+    nicely with the our 2d tsne chart.
+"""
+def get_plottable_df(labels, users, texts, two_d_coords):
+    # set up color palette
+    num_labels = len(set(labels))
+    colors = sns.color_palette('hls', num_labels).as_hex()
+    color_lookup = {v:k for k,v in zip(colors, set(labels))}
+    # combine data into a single df
+    df = pd.DataFrame({'username': users,
+                       'text': texts,
+                       'label': labels,
+                       'x_val': two_d_coords[:,0],
+                       'y_val': two_d_coords[:,1],
+                      })
+    # convert labels to colors
+    df['color'] = list(map(lambda x: color_lookup[x], labels))
+    return df
+
+def get_plottable_controller(sample_type, dict_samples):
+    if sample_type == 'single':
+        for m in dict_samples:
+            if ('obj' in dict_samples[m]) and (dict_samples[m]['obj'].vector is not None):
+                # set up color palette
+                num_labels = len(set(dict_samples[m]['obj'].km_model.labels_))
+                colors = sns.color_palette('hls', num_labels).as_hex()
+                color_lookup = {v:k for k,v in zip(colors, set(dict_samples[m]['obj'].km_model.labels_))}
+                # combine data into a single df
+                df = pd.DataFrame({'username': dict_samples[m]['obj'].u_users,
+                                   'text': dict_samples[m]['obj'].u_texts,
+                                   'label': dict_samples[m]['obj'].km_model.labels_,
+                                   'x_val': dict_samples[m]['obj'].matrix_2d[:,0],
+                                   'y_val': dict_samples[m]['obj'].matrix_2d[:,1],
+                                  })
+                # convert labels to colors
+                df['color'] = list(map(lambda x: color_lookup[x], dict_samples[m]['obj'].km_model.labels_))
+                dict_samples[m]['obj'].km_plottable = df
+    elif sample_type == 'multiple':
+        for p in dict_samples:
+            for m in dict_samples[p]:
+                if ('obj' in dict_samples[p][m]) and (dict_samples[p][m]['obj'].vector is not None):
+                    # set up color palette
+                    num_labels = len(set(dict_samples[p][m]['obj'].km_model.labels_))
+                    colors = sns.color_palette('hls', num_labels).as_hex()
+                    color_lookup = {v:k for k,v in zip(colors, set(dict_samples[p][m]['obj'].km_model.labels_))}
+                    # combine data into a single df
+                    df = pd.DataFrame({'username': dict_samples[p][m]['obj'].u_users,
+                                       'text': dict_samples[p][m]['obj'].u_texts,
+                                       'label': dict_samples[p][m]['obj'].km_model.labels_,
+                                       'x_val': dict_samples[p][m]['obj'].matrix_2d[:,0],
+                                       'y_val': dict_samples[p][m]['obj'].matrix_2d[:,1],
+                                      })
+                    # convert labels to colors
+                    df['color'] = list(map(lambda x: color_lookup[x], dict_samples[p][m]['obj'].km_model.labels_))
+                    dict_samples[p][m]['obj'].km_plottable = df
+    return dict_samples
+
+"""
+    Helper function to display original texts for
+    users modeled in cluster `idx`.
+"""
+def cluster_sample(orig_text, model, idx, preview=15):
+    for i,idx in enumerate(np.where(model.labels_ == idx)[0]):
+        print(orig_text[idx].replace('\n',' '))
+        print()
+        if i > preview:
+            print('( >>> Truncated preview of cluster sample <<< )')
+            break
 
 ##################################################################
 
@@ -1135,16 +1631,16 @@ def batch_output_period_hub_samples(**kwargs):
         x = x + 1
 
 '''
-    ic_sample_getter: Samples corpus based on module edge data from infomap data.
+    sample_getter: Samples corpus based on module edge data from infomap data.
         **NOTE: It currently assumes the following column types in this exact order:
-        'id', 'date', 'user_id', 'username', 'tweet', 'mentions', 'retweets_count', 'hashtags', 'link'
+        'id', 'created_at', 'date', 'user_id', 'username', 'tweet', 'mentions', 'retweets_count', 'hashtags', 'link'
         **TODO: Change column lookup and appending process to be flexible for user's needs.
     
     Args:
-        - sample_size: Integer. Number of edges to sample.
+        - sample_size: Integer. Number of edges to sample. To keep all results, use -1 (Int) value.
         - edges: List of Dicts. Edge data.
         - period_corpus: DataFrame. Content corpus to be sampled.
-        - sample_type: String. Option for 
+        - sample_type: String. Current options include:
             - 'modules': Samples tweets based on community module source-target relations.
             - 'ht_groups': Samples tweets based on use of hashtags. Must provide list of strings.
         - user_threshold:
@@ -1153,7 +1649,7 @@ def batch_output_period_hub_samples(**kwargs):
     Return:
         - DataFrame. Sampled content, based on infomap module edges.
 '''
-def ic_sample_getter(sample_size, edges, period_corpus, sample_type, user_threshold, random, ht_list=None):
+def sample_getter(sample_size, edges, period_corpus, sample_type, user_threshold, random, ht_list=None):
     mod_list_sample = []
     l = len(edges)
     for c in tqdm(range(0, l)):
@@ -1172,14 +1668,15 @@ def ic_sample_getter(sample_size, edges, period_corpus, sample_type, user_thresh
                                 if i == t:
                                     r = {
                                         'id': int(float(row[0])),
-                                        'date': row[1],
-                                        'user_id': int(float(row[2])),
-                                        'username': row[3],
-                                        'tweet': row[4], 
-                                        'mentions': row[5], 
-                                        'retweets_count': row[6], 
-                                        'hashtags': row[7], 
-                                        'link': row[8]
+                                        'created_at': row[1],
+                                        'date': row[2],
+                                        'user_id': int(float(row[3])),
+                                        'username': row[4],
+                                        'tweet': row[5], 
+                                        'mentions': row[6], 
+                                        'retweets_count': int(float(row[7])), 
+                                        'hashtags': row[8], 
+                                        'link': row[9]
                                     }
                                     mod_list_sample.append(r)
             elif sample_type == 'hashtag_group':
@@ -1193,14 +1690,15 @@ def ic_sample_getter(sample_size, edges, period_corpus, sample_type, user_thresh
                                     if i == h:
                                         r = {
                                             'id': int(float(row[0])),
-                                            'date': row[1],
-                                            'user_id': int(float(row[2])),
-                                            'username': row[3],
-                                            'tweet': row[4], 
-                                            'mentions': row[5], 
-                                            'retweets_count': row[6], 
-                                            'hashtags': row[7], 
-                                            'link': row[8]
+                                            'created_at': row[1],
+                                            'date': row[2],
+                                            'user_id': int(float(row[3])),
+                                            'username': row[4],
+                                            'tweet': row[5], 
+                                            'mentions': row[6], 
+                                            'retweets_count': int(float(row[7])), 
+                                            'hashtags': row[8], 
+                                            'link': row[9]
                                         }
                                         mod_list_sample.append(r)
                                         
@@ -1226,44 +1724,55 @@ def ic_sample_getter(sample_size, edges, period_corpus, sample_type, user_thresh
                 res_list.append(s)
     
     # Add to sample
-    if len(res_list) > (sample_size):
-        df_sample = pd.DataFrame(res_list)
-        if random == True:
-            # Sample it randomly
-            random_sample = df_sample.sample(n=sample_size, random_state=1)
-            return random_sample
-        if random == False:
-            sorted_sample = df_sample.sort_values('retweets_count', ascending=False)
-            ss = sorted_sample[:sample_size]
-            return ss
-    elif len(res_list) < sample_size:
+    if sample_size == -1:
+        # Retrieve total sample
         df_sample = pd.DataFrame(res_list)
         return df_sample
+    else:
+        if len(res_list) > (sample_size):
+            df_sample = pd.DataFrame(res_list)
+            if random == True:
+                # Sample it randomly
+                random_sample = df_sample.sample(n=sample_size, random_state=1)
+                return random_sample
+            elif random == False:
+                sorted_sample = df_sample.sort_values('retweets_count', ascending=False)
+                ss = sorted_sample[:sample_size]
+                return ss
+        elif len(res_list) < sample_size:
+            df_sample = pd.DataFrame(res_list)
+            return df_sample
        
 '''
-    infomap_content_sampler: Sample content in each period per module, based on
+    content_sampler: Sample content in each period per module, based on
         map equation flow-based community detection.
         Args:
+            - period_type: String. Options include:
+                - 'single': If sampling single period from dict with [module] structure
+                - 'multiple': If sampling multiple periods from dict with [period][module] structure
             - network: Dict. Each community across periods edge and node data.
             - corpus: DataFrame.
+            - sample_type: String. Current options include and passed onto ic_sample_getter():
+                - 'modules': Samples tweets based on community module source-target relations.
+                - 'ht_groups': Samples tweets based on use of hashtags. Must provide list of strings.
             - period_dates: Dict of lists.
-            - sample_size: Integer.
+            - sample_size: Integer. Number of edges to sample. To keep all results, use -1 (Int) value.
+            - period_num: String. If single 'period_type', define period number as a string.
             - random: Boolean. True pulls randomized sample. False pulls top x tweets.
         Return:
             - Dict of DataFrames. Sample of content in each module per period       
 '''
-def infomap_content_sampler(network, sample_size, period_dates, corpus, sample_type, ht_group, user_threshold, random=False):
+def content_sampler(period_type, network, sample_size, period_dates, corpus, sample_type, ht_group, user_threshold, period_num=None, random=False):
     dict_samples = {}
-    for p in network:
-        dict_samples[p] = {}
-        print('Sampling from period', p)
-        for m in network[p]:
+    # Single period
+    if period_type == 'single':
+        for m in network:
             print('Module', m, 'started.')
-            dict_samples[p][m] = {}
-            m_edges = network[p][m]['edges'].to_dict('records') #Dict of module edge data
-            p_dates = period_dates[p] #List of dates for period
+            dict_samples[m] = {}
+            m_edges = network[m]['edges'].to_dict('records') #Dict of module edge data
+            p_dates = period_dates[period_num] #List of dates for period
             p_corpus = corpus.loc[corpus['date'].isin(p_dates)]
-            sample = ic_sample_getter(
+            sample = sample_getter(
                                     sample_size, 
                                     m_edges, 
                                     p_corpus,
@@ -1273,16 +1782,41 @@ def infomap_content_sampler(network, sample_size, period_dates, corpus, sample_t
                                     random=random)
             try:
                 print('Module', m, 'sample size:', len(sample))
-                dict_samples[p][m]['sample'] = sample
+                dict_samples[m]['sample'] = sample
             except TypeError as e:
                 print(e, 'Module', m, 'sample size: 0')
-            
-        print('\n')
+        
+    elif period_type == 'multiple':
+        # Multiple periods
+        for p in network:
+            dict_samples[p] = {}
+            print('Sampling from period', p)
+            for m in network[p]:
+                print('Module', m, 'started.')
+                dict_samples[p][m] = {}
+                m_edges = network[p][m]['edges'].to_dict('records') #Dict of module edge data
+                p_dates = period_dates[p] #List of dates for period
+                p_corpus = corpus.loc[corpus['date'].isin(p_dates)]
+                sample = sample_getter(
+                                        sample_size, 
+                                        m_edges, 
+                                        p_corpus,
+                                        sample_type,
+                                        ht_list=ht_group,
+                                        user_threshold=user_threshold,
+                                        random=random)
+                try:
+                    print('Module', m, 'sample size:', len(sample))
+                    dict_samples[p][m]['sample'] = sample
+                except TypeError as e:
+                    print(e, 'Module', m, 'sample size: 0')
+
+            print('\n')
                 
     return dict_samples
 
 '''
-    infomap_edges_sampler: Sample edges in each period per module, based on
+    edges_sampler: Sample edges in each period per module, based on
         map equation flow-based community detection.
         Args:
             - network: Dict. Each module edges data across periods edge and node data.
@@ -1292,7 +1826,7 @@ def infomap_content_sampler(network, sample_size, period_dates, corpus, sample_t
         Return:
             - Dict of DataFrames. Sample of content in each module per period       
 '''
-def infomap_edges_sampler(network, sample_size, column_name, random=False):
+def edges_sampler(network, sample_size, column_name, random=False):
     dict_samples = {}
     if random == False:
         for p in network:
@@ -1639,7 +2173,7 @@ def split_community_tweets(**kwargs):
 
         # Transform into list of processed docs
         split_docs = df_documents[kwargs['col_name']]
-        cleaned_split_docs = clean_split_docs(split_docs)
+        cleaned_split_docs = clean_split_docs(split_docs, kwargs['stop_words'])
         kwargs['dict_comm_obj'][cdf].split_docs = cleaned_split_docs
     print( ' \'processed_docs\': dataframe written for each community dictionary.' )
     return kwargs['dict_comm_obj']
@@ -1647,10 +2181,7 @@ def split_community_tweets(**kwargs):
 '''
     Removes punctuation, makes lowercase, removes stopwords, and converts into dataframe for topic modeling
 '''
-def clean_split_docs(pcpd):
-    nltk.download('stopwords')
-    stop = stopwords.words('english')
-    stop = set(stop) # Transform as a set for efficiency later
+def clean_split_docs(pcpd, stop):
     # Remove punctuation
     translator = str.maketrans('', '', string.punctuation)
     c_no_puncs = []
