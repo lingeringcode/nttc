@@ -9,10 +9,10 @@ Distributed under the BSD 3-clause license. See LICENSE.txt or http://opensource
 A set of functions that process and create topic models from a sample of community-detected Twitter networks' tweets. It also analyzes if there are potential persistent community hubs (either/and by top mentioned or top RTers).
 
 It assumes you seek an answer to the following questions:
+
 1. What communities persist or are ephemeral across periods in the corpora, and when?
 2. What can these communities be named, based on their top RTs and users, top mentioned users, as well as generated topic models?
 3. Of these communities, what are their topics over time?
-    - Build corpus of tweets per community groups across periods and then build LDA models for each set.
 
 Accordingly, it assumes you have a desire to investigate communities across periods and the tweets from each detected community across already defined periodic episodes with the goal of naming each community AND examining their respective topics over time in the corpus.
 
