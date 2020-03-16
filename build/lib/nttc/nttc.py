@@ -1205,8 +1205,9 @@ def network_organizer(m_edges, m_mod):
         It appends node names to edge data and also creates a node list
         for each module.
         Args:
-            - p_sample: Integer. Number of desired periods to sample.
-            - m_sample: Integer. Number of desired modules to sample.
+            - p_sample: Tuple of Integers. Number of desired period range to sample.
+            - m_sample: Tuple of Integers. Number of desired module range to sample.
+                - These tuples assume continuous ranges: 1-10, 3-6, etc.
             - Dict. Output from batch_map(), ftree_edge_maker(), and
                 infomap_hub_maker(), which includes.
                 - DataFrame. Module edge data.
@@ -1217,10 +1218,10 @@ def network_organizer(m_edges, m_mod):
 def networks_controller(p_sample, m_sample, dict_im):
     dict_network = {}
     dict_network['network'] = {}
-    for p in range(1, (p_sample+1)):
+    for p in range(p_sample[0], (p_sample[1]+1)):
         print('Processing period', p)
         dict_network['network'][str(p)] = {}
-        for m in range(1, (m_sample+1)):
+        for m in range(m_sample[0], (m_sample[1]+1)):
             print('Module', m)
             nodes_and_edges = network_organizer(
                         dict_im[str(p)]['indices']['ftree_links'][str(m)]['df_edges'],

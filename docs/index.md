@@ -176,8 +176,9 @@ Uses Dict data structure hydrated from the following functions:
 It appends node names to edge data and also creates a node list for each module.
 
 - Args:
-    - p_sample: Integer. Number of desired periods to sample.
-    - m_sample: Integer. Number of desired modules to sample.
+    - p_sample: Tuple of Integers. Desired period range to sample.
+    - m_sample: Tuple of Integers. desired module range to sample.
+      - Both assume a continuous range: 1-10, 3-6, etc.
     - Dict. Output from batch_map(), ftree_edge_maker(), and
         infomap_hub_maker(), which includes.
         - DataFrame. Module edge data.
