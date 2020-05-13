@@ -80,9 +80,6 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 from nltk.stem import WordNetLemmatizer, SnowballStemmer
 from nltk.stem.porter import *
 
-'''
-    See README.md for an overview and comments for extended explanation.
-'''
 class allPeriodsObject:
     '''an object class with an attribute dict that stores per Period network data of nodes and edges in respective Dataframes'''
     def __init__(self, all_period_networks_dict=None, period_dates=None, info_hubs=None):
@@ -467,7 +464,10 @@ def tm_vectorizer(sample_type, dict_samples, stop_words):
     
     return dict_samples
 
-# {'1234': 'tweeet tweet'}
+'''
+    unique_observ_mapper: Write Dict of unique observations for kmeans analysis:
+        - Structure: {'observation_name': 'variable_name'}
+'''
 def unique_observ_mapper(sample_type, dict_samples, observation, variable):
     if sample_type == 'single':
         for m in dict_samples:
@@ -544,20 +544,14 @@ def calc_matrix(sample_type, dict_samples):
                         )
     return dict_samples
 
-def kmeans_plotter(matrix, title, seed):
-    # compare a broad range of ks to start
-    kv1 = int(len(list(matrix)) / 2)
-    kv2 = int(len(list(matrix)) / 6)
-    kv3 = int(len(list(matrix)) / 10)
-    kv4 = int(len(list(matrix)) / 16)
-    kv5 = 2
-    k_list = [kv5,kv4,kv3,kv2,kv1]
-    
-    # filter list for extra large k values
-    kv_list = []
-    for k in k_list:
-        if k < 2000:
-            kv_list.append(k)
+'''
+    kmeans_plotter:
+    Args:
+    Returns: 
+'''
+def kmeans_plotter(matrix, title, seed, kv_list):
+    # Sort k values just in case
+    kv_list = sorted(kv_list, key=int)
 
     # track a couple of metrics
     sil_scores = []
@@ -587,18 +581,18 @@ def kmeans_plotter(matrix, title, seed):
     plt.ylabel('silhouette score')
     plt.xlabel('k')
 
-def compare_kmeans(sample_type, dict_samples, seed):
+def compare_kmeans(sample_type, dict_samples, seed, kv_list):
     if sample_type == 'single':
         for m in dict_samples:
             if ('obj' in dict_samples[m]) and (dict_samples[m]['obj'].vector is not None):
                 title = 'Module '+m+' Kmeans parameter search'
-                kmeans_plotter(dict_samples[m]['obj'].matrix, title, seed)
+                kmeans_plotter(dict_samples[m]['obj'].matrix, title, seed, kv_list)
     elif sample_type == 'multiple':
         for p in dict_samples:
             for m in dict_samples[p]:
                 if ('obj' in dict_samples[p][m]) and (dict_samples[p][m]['obj'].vector is not None):
                     title = 'Period '+p+' Module '+m+' Kmeans parameter search'
-                    kmeans_plotter(dict_samples[p][m]['obj'].matrix, title, seed)
+                    kmeans_plotter(dict_samples[p][m]['obj'].matrix, title, seed, kv_list)
 
 def fit_filename_writer(sample_type, dict_samples, file_primer):
     file = ''
@@ -649,10 +643,9 @@ def trial_fit_tsne(sample_type, dict_samples, seed):
                         np.save(dict_samples[p][m]['obj'].fit_file, matrix_2d)
     return dict_samples
 
-"""
-    get_plottable_df: Combine the necessary pieces of data to create a data structure that plays
-    nicely with the our 2d tsne chart.
-"""
+'''
+    get_plottable_df: Combine the necessary variables for the 2d tsne chart.
+'''
 def get_plottable_df(labels, users, texts, two_d_coords):
     # set up color palette
     num_labels = len(set(labels))
@@ -707,10 +700,10 @@ def get_plottable_controller(sample_type, dict_samples):
                     dict_samples[p][m]['obj'].km_plottable = df
     return dict_samples
 
-"""
-    Helper function to display original texts for
+'''
+    cluster_sample: Helper function to display original texts for
     users modeled in cluster `idx`.
-"""
+'''
 def cluster_sample(orig_text, model, idx, preview=15):
     for i,idx in enumerate(np.where(model.labels_ == idx)[0]):
         print(orig_text[idx].replace('\n',' '))
@@ -781,7 +774,7 @@ def write_net_txt(**kwargs):
             if len(v) == 4:
                 print(v[0], user, v[3], file=f)
             else:
-                print(v[0], v[1], file=f)
+                print(v[0], user, file=f)
         
         print( '*Arcs', len(kwargs['keyed_edges']), file=f )
         for e in kwargs['keyed_edges']:
