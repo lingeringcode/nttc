@@ -313,6 +313,7 @@ Takes fully hydrated infomap dict and outputs it as a CSV file.
     - ```header```= column names for DataFrame and CSV; 
         - Assumes they're in order with period and hub in first and second position
     - ```dict_hub```= Hydrated Dict of hubs
+    - ```filtered_hub_length```= Int. Desired length of hub
     - ``path``= Output path
     - ``file``= Output file name
 

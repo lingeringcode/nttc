@@ -735,7 +735,7 @@ def write_net_dict(**kwargs):
     verts = []
     arcs = []
     for v in kwargs['vertices']:
-        user = '\"'+v[1]+'\"'
+        user = '\"'+str(v[1])+'\"'
         if len(v) == 3:
             verts.append([index, user, v[3]])
         else:
@@ -770,7 +770,7 @@ def write_net_txt(**kwargs):
     with open(join(kwargs['net_path'], kwargs['net_output']), "a") as f:
         print( '*Vertices', len(kwargs['vertices']), file=f )
         for v in kwargs['vertices']:
-            user = '\"'+v[1]+'\"'
+            user = '\"'+str(v[1])+'\"'
             if len(v) == 4:
                 print(v[0], user, v[3], file=f)
             else:
@@ -778,10 +778,11 @@ def write_net_txt(**kwargs):
         
         print( '*Arcs', len(kwargs['keyed_edges']), file=f )
         for e in kwargs['keyed_edges']:
-            if len(e) == 3:
-                print(e[0], e[1], e[3], file=f)
-            else:
-                print(e[0], e[1], file=f)
+            if e != None:
+                if len(e) == 3:
+                    print(e[0], e[1], e[3], file=f)
+                else:
+                    print(e[0], e[1], file=f)
     print('File', kwargs['net_output'], 'written to', kwargs['net_path'])
 
 '''
@@ -1260,27 +1261,28 @@ def append_rank(lnr):
 def ranker(tdhn, **kwargs):
     if kwargs['rank_type'] == 'per_hub':
         for p in tdhn:
-            for h in tdhn[p]['info_hub']:
-                # Write list of hub's nodes and flow scores as a list of tuples
-                list_nodes_unranked = []
-                for n in tdhn[p]['info_hub'][h]:
-                    if 'total_hub_flow_score' in n:
-                        name = n['name']
-                        flow = n['score']
-                        total_hub_flow = n['total_hub_flow_score']
-                        listed_rank = [ name, format(flow, 'f'), format(total_hub_flow, 'f') ]
-                        list_nodes_unranked.append(listed_rank)
-                # Rank the list
-                list_nodes_ranked = sorted(list_nodes_unranked, key=lambda x: x[1], reverse=True)
-                list_nodes_appended_ranks = append_rank(list_nodes_ranked)
-                listed_nodes_percentages = append_percentages(list_nodes_appended_ranks)
+            if 'info_hub' in tdhn[p]:
+                for h in tdhn[p]['info_hub']:
+                    # Write list of hub's nodes and flow scores as a list of tuples
+                    list_nodes_unranked = []
+                    for n in tdhn[p]['info_hub'][h]:
+                        if 'total_hub_flow_score' in n:
+                            name = n['name']
+                            flow = n['score']
+                            total_hub_flow = n['total_hub_flow_score']
+                            listed_rank = [ name, format(flow, 'f'), format(total_hub_flow, 'f') ]
+                            list_nodes_unranked.append(listed_rank)
+                    # Rank the list
+                    list_nodes_ranked = sorted(list_nodes_unranked, key=lambda x: x[1], reverse=True)
+                    list_nodes_appended_ranks = append_rank(list_nodes_ranked)
+                    listed_nodes_percentages = append_percentages(list_nodes_appended_ranks)
 
-                # Update hub Dict with percentages
-                for per in tdhn[p]['info_hub'][h]:
-                    for lnp in listed_nodes_percentages:
-                        if per['name'] == lnp[0]:
-                            per.update({'percentage_total': lnp[4]})
-                            per.update({'spot': lnp[3]})
+                    # Update hub Dict with percentages
+                    for per in tdhn[p]['info_hub'][h]:
+                        for lnp in listed_nodes_percentages:
+                            if per['name'] == lnp[0]:
+                                per.update({'percentage_total': lnp[4]})
+                                per.update({'spot': lnp[3]})
         return tdhn
 
 '''
@@ -1431,55 +1433,60 @@ def get_period_flow_total(lpt):
 def score_summer(dhn, **kwargs):
     for p in dhn:
         list_period_totals = []
-        for h in dhn[p]['info_hub']:
-            total_hub_flow = 0.0
-            total_hub_flow = get_score_total(dhn[p]['info_hub'][h])
-            
-            # Update hub with flow score total for each node in hub
-            h_hub_sample = 0
-            for ln in dhn[p]['info_hub'][h]:
-                if kwargs['hub_sample_size']:
-                    if h_hub_sample < kwargs['hub_sample_size']:
+        if 'info_hub' in dhn[p]:
+            for h in dhn[p]['info_hub']:
+                total_hub_flow = 0.0
+                total_hub_flow = get_score_total(dhn[p]['info_hub'][h])
+
+                # Update hub with flow score total for each node in hub
+                h_hub_sample = 0
+                for ln in dhn[p]['info_hub'][h]:
+                    if kwargs['hub_sample_size']:
+                        if h_hub_sample < kwargs['hub_sample_size']:
+                            ln.update({'total_hub_flow_score': total_hub_flow})
+                            h_hub_sample = h_hub_sample+1
+                    else:
                         ln.update({'total_hub_flow_score': total_hub_flow})
-                        h_hub_sample = h_hub_sample+1
-                else:
-                    ln.update({'total_hub_flow_score': total_hub_flow})
-            
-            # Append hub total to list for period tally later
-            list_period_totals.append(total_hub_flow)
+
+                # Append hub total to list for period tally later
+                list_period_totals.append(total_hub_flow)
         pt = get_period_flow_total(list_period_totals)
         # Update each node in each hub in each period with period flow scores
-        for ht in dhn[p]['info_hub']:
-            # Update hub with flow score total for each node in hub
-            ht_hub_sample = 0
-            for pln in dhn[p]['info_hub'][ht]:
-                if kwargs['hub_sample_size']:
-                    if ht_hub_sample < kwargs['hub_sample_size']:
+        if 'info_hub' in dhn[p]:
+            for ht in dhn[p]['info_hub']:
+                # Update hub with flow score total for each node in hub
+                ht_hub_sample = 0
+                for pln in dhn[p]['info_hub'][ht]:
+                    if kwargs['hub_sample_size']:
+                        if ht_hub_sample < kwargs['hub_sample_size']:
+                            pln.update({'total_period_flow_score': pt})
+                            ht_hub_sample = ht_hub_sample+1
+                    else:
                         pln.update({'total_period_flow_score': pt})
-                        ht_hub_sample = ht_hub_sample+1
-                else:
-                    pln.update({'total_period_flow_score': pt})
     return dhn
-
 '''
     output_infomap_hub: Takes fully hydrated infomap dict and outputs it as a CSV file.
         - Args: 
             - header= column names for DataFrame and CSV; 
                 - Assumes they're in order with period and hub in first and second position
             - dict_hub= Hydrated Dict of hubs
+            - filtered_hub_length= Int. Desired length of hub
             - path= Output path
             - file= Output file name
 '''
 def output_infomap_hub(**kwargs):
     hubs = []
-    for ih in kwargs['dict_hub']:
-        for i in kwargs['dict_hub'][ih]['info_hub']:
-            for h in kwargs['dict_hub'][ih]['info_hub'][i]:
-                if len(h) > kwargs['filtered_header_length']: #filter out unwanted
-                    temp_hub = [int(ih), int(i)]
-                    for c in kwargs['header'][2:]:
-                        temp_hub.append(h[c])
-                    hubs.append(temp_hub)
+    for p in kwargs['dict_hub']:
+        if 'info_hub' in kwargs['dict_hub'][p]:
+            for h in kwargs['dict_hub'][p]['info_hub']:
+                tracker = 0
+                for r in kwargs['dict_hub'][p]['info_hub'][h]:
+                    if tracker < kwargs['filtered_hub_length']:
+                        temp_hub = [int(p), int(h)]
+                        for c in r:
+                            temp_hub.append(r[c])
+                        hubs.append(temp_hub)
+                        tracker = tracker+1
     df_info_hubs = pd.DataFrame(hubs, columns=kwargs['header'])
 
     df_info_hubs.to_csv(join(kwargs['path'], kwargs['file']),
