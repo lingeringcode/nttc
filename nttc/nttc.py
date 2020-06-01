@@ -920,7 +920,10 @@ def ftree_edge_maker(dict_map):
         for m in dict_map[p]['indices']['ftree_links']:
             start = 0
             end = 0
-            if dict_map[p]['indices']['ftree_links'][m]['indices'][0] < dict_map[p]['indices']['ftree_links'][m]['indices'][1]:
+            # If length of indices == 1 or 0, then there are no edges
+            if len(dict_map[p]['indices']['ftree_links'][m]['indices']) == 0 or len(dict_map[p]['indices']['ftree_links'][m]['indices']) == 1:
+                break
+            elif dict_map[p]['indices']['ftree_links'][m]['indices'][0] < dict_map[p]['indices']['ftree_links'][m]['indices'][1]:
                 start = dict_map[p]['indices']['ftree_links'][m]['indices'][0]
                 end = dict_map[p]['indices']['ftree_links'][m]['indices'][1]
             # If start equal to end, then there are no edges.
@@ -1202,7 +1205,7 @@ def network_organizer(m_edges, m_mod):
             - p_sample: Tuple of Integers. Number of desired period range to sample.
             - m_sample: Tuple of Integers. Number of desired module range to sample.
                 - These tuples assume continuous ranges: 1-10, 3-6, etc.
-            - Dict. Output from batch_map(), ftree_edge_maker(), and
+            - dict_im: Dict. Output from batch_map(), ftree_edge_maker(), and
                 infomap_hub_maker(), which includes.
                 - DataFrame. Module edge data.
                 - List of dicts. Module node data with names.
@@ -1217,11 +1220,15 @@ def networks_controller(p_sample, m_sample, dict_im):
         dict_network['network'][str(p)] = {}
         for m in range(m_sample[0], (m_sample[1]+1)):
             print('Module', m)
-            nodes_and_edges = network_organizer(
-                        dict_im[str(p)]['indices']['ftree_links'][str(m)]['df_edges'],
-                        dict_im[str(p)]['info_hub'][str(m)]
-            )
-            dict_network['network'][str(p)][str(m)] = nodes_and_edges
+            # Check if module exists
+            if str(m) in dict_im[str(p)]['indices']['ftree_links']:
+                # Check if dataframe exists
+                if 'df_edges' in dict_im[str(p)]['indices']['ftree_links'][str(m)]:
+                    nodes_and_edges = network_organizer(
+                                dict_im[str(p)]['indices']['ftree_links'][str(m)]['df_edges'],
+                                dict_im[str(p)]['info_hub'][str(m)]
+                    )
+                    dict_network['network'][str(p)][str(m)] = nodes_and_edges
             
     return dict_network
 
@@ -1383,6 +1390,7 @@ def infomap_hub_maker(dict_map, **kwargs):
                 elif mod not in dict_hubs and node != '0 "':
                     dict_hubs.update({mod:
                         [{
+                            'module': mod,
                             'node': node,
                             'name': name,
                             'score': flow
@@ -1390,6 +1398,7 @@ def infomap_hub_maker(dict_map, **kwargs):
                     })
                 elif mod in dict_hubs and len(dict_hubs[mod]) >= 1 and (len(dict_hubs[mod]) < kwargs['hub_sample_size'] or kwargs['hub_sample_size'] == -1) and node != '0 "':
                     hub_list = {
+                        'module': mod,
                         'node': node,
                         'name': name,
                         'score': flow
@@ -1501,70 +1510,61 @@ def output_infomap_hub(**kwargs):
         - dft: DataFrame of sampled tweet data
         - dfh: Full DataFrame of hubs data
         - period_num: Integer of particular period number
+        - hub_cols: List of column names from hub file desired to preserve
     - Returns List of Dicts with hub and info_name mentions info
 '''
-def add_infomap(dft, dfh, period_num):
+def add_infomap(dft, dfh, period_num, hub_cols):
     period_comms = []
     df_tweets = dft.copy().reset_index(drop=True)
-    for index, row in df_tweets.iterrows():
+    for row in df_tweets.to_dict('records'):
         m = row['mentions']
         if isinstance(m, str):
             m = ast.literal_eval(m)
-            if len(m) == 1:
-                found_hubber = dfh[(dfh.period == period_num) & (dfh.info_name == m[0])]
-                fh = found_hubber.values.tolist()
-                if len(fh) > 0:
-                    period_comms.append( ( {
-                        'period': fh[0][0],
-                        'info_module':fh[0][1],
-                        'info_node':fh[0][3],
-                        'info_name_mentioned':fh[0][2],
-                        'tweet': row['tweet'],
-                        'info_score':fh[0][4],
-                        'retweets_count': row['retweets_count'],
-                        'link': row['link'],
-                        'username': row['username'],
-                        'user_id': row['user_id']
-                    } ) )
-            elif len(m) > 1:
-                for user in m:
-                    found_hubber = dfh[(dfh.period == period_num) & (dfh.info_name == user)]
-                    fh = found_hubber.values.tolist()
+            if len(m) > 0:
+                # Go through list of mentions
+                for mentioned in m:
+                    found_hubber = dfh[(dfh.period == period_num) & (dfh.node_name == mentioned)]
+                    fh = found_hubber.to_dict('records')
                     if len(fh) > 0:
-                        # Append each found instance
-                        for f in fh:
-                            period_comms.append(({
-                                'period': f[0],
-                                'info_module':f[1],
-                                'info_node':f[3],
-                                'info_name_mentioned':f[2],
-                                'tweet': row['tweet'],
-                                'info_score':f[4],
-                                'retweets_count': row['retweets_count'],
-                                'link': row['link'],
-                                'username': row['username'],
-                                'user_id': row['user_id']
-                            }))
+                        for i in fh:
+                            new_dict = {}                            
+                            # 1. Append desired hub columns
+                            for c in hub_cols:
+                                new_dict.update({
+                                    c: i[c]
+                                })
+                            
+                            # 2. Append tweet data
+                            for r in row:
+                                new_dict.update({
+                                    r: row[r]
+                                })
+                            
+                            # 3. Append to main list
+                            period_comms.append(new_dict)
+                    
     return period_comms
 
 '''
     sampling_module_hubs: Compares hub set with tweet data to yield a
         sample of tweets with hub information. Sample meant to examine qualitative
         features of the modules per period.
-        Assumes you have sorted tweets in descending order by number of RTs.
+        **Assumes you have sorted tweets in descending order by number of RTs.**
     - Args:
         - period_dates: Dict of lists that include dates for each period of the corpus
         - period_check: String for option: Check against 'single' or 'multiple'
         - period_num: Integer. If period_check == 'single', provide integer of period number.
         - df_all_tweets: Pandas DataFrame of tweets
-        - df_hubs: Pandas DataFrame of infomapped hubs
+        - df_hubs: Pandas DataFrame of infomapped hubs. Two required column names: 
+            - period: Integer of particular period number
+            - node_name: String. Represents target node to search.
         - top_rts_sample: Integer of desired sample size of sorted top tweets (descending order)
-        - hub_sample: Integer of desired sample size to output
-        - columns: List of column names; each as a String. **Must match column names from tweet and hub data sets
+        - hub_sample: Integer of desired sample size to output.
+        - hub_cols: List of column names from hub file desired to preserve.
     - Returns DataFrame of top sampled tweets 
 '''
 def sampling_module_hubs(**kwargs):
-    module_output = pd.DataFrame([], columns=kwargs['columns'])
+    module_output = []
     if kwargs['period_check'] == 'multiple':
         for p in kwargs['period_dates']:
             # 1. Use dates to find all tweets in period
@@ -1584,10 +1584,14 @@ def sampling_module_hubs(**kwargs):
             new_rows = add_infomap(
                 dft=df_output,
                 dfh=sliced_hub,
-                period_num=period_num
+                period_num=period_num,
+                hub_cols=kwargs['hub_cols']
             )
-            module_output = module_output.append(new_rows)
+            
+            # 5. Append period's dicts of tweets to list
+            module_output = module_output + new_rows
             print('Completed period', period_num, 'tweets.\n\n')
+            
     elif kwargs['period_check'] == 'single':
         # 1. Use dates to find all tweets in period
         df_p = kwargs['df_all_tweets'][kwargs['df_all_tweets']['date'].isin(kwargs['period_dates'])]
@@ -1607,10 +1611,12 @@ def sampling_module_hubs(**kwargs):
             dfh=sliced_hub,
             period_num=kwargs['period_num']
         )
-        module_output = module_output.append(new_rows)
+
+        module_output = module_output + new_rows
         print('Completed period', kwargs['period_num'], 'tweets.\n\n')
     
-    return module_output
+    module_df = pd.DataFrame(module_output)
+    return module_df
 
 '''
     batch_output_period_hub_samples: Periodic batch output that saves 
@@ -1632,11 +1638,7 @@ def batch_output_period_hub_samples(**kwargs):
         x = x + 1
 
 '''
-    sample_getter: Samples corpus based on module edge data from infomap data.
-        **NOTE: It currently assumes the following column types in this exact order:
-        'id', 'created_at', 'date', 'user_id', 'username', 'tweet', 'mentions', 'retweets_count', 'hashtags', 'link'
-        **TODO: Change column lookup and appending process to be flexible for user's needs.
-    
+    sample_getter: Samples corpus based on module edge data from infomap data.    
     Args:
         - sample_size: Integer. Number of edges to sample. To keep all results, use -1 (Int) value.
         - edges: List of Dicts. Edge data.
@@ -1660,28 +1662,18 @@ def sample_getter(sample_size, edges, period_corpus, sample_type, user_threshold
             t = edges[c]['target_name']
             sample_content = period_corpus[period_corpus['username'] == s]
             if sample_type == 'modules':
-                for index, row in sample_content.iterrows():
+                for row in sample_content.to_dict('records'):
                     m = row['mentions']
                     if isinstance(m, str):
                         m = ast.literal_eval(m)
                         if len(m) > 0:
-                            for i in m:
-                                if i == t:
-                                    r = {
-                                        'id': int(float(row[0])),
-                                        'created_at': row[1],
-                                        'date': row[2],
-                                        'user_id': int(float(row[3])),
-                                        'username': row[4],
-                                        'tweet': row[5], 
-                                        'mentions': row[6], 
-                                        'retweets_count': int(float(row[7])), 
-                                        'hashtags': row[8], 
-                                        'link': row[9]
-                                    }
-                                    mod_list_sample.append(r)
+                            # Go through list of mentions
+                            for mentioned in m:
+                                if mentioned == t:
+                                    # Append to main list
+                                    mod_list_sample.append(row)
             elif sample_type == 'hashtag_group':
-                for index, row in sample_content.iterrows():
+                for row in sample_content.to_dict('records'):
                     m = row['hashtags']
                     if isinstance(m, str):
                         m = ast.literal_eval(m)
@@ -1689,19 +1681,7 @@ def sample_getter(sample_size, edges, period_corpus, sample_type, user_threshold
                             for i in m:
                                 for h in ht_list:
                                     if i == h:
-                                        r = {
-                                            'id': int(float(row[0])),
-                                            'created_at': row[1],
-                                            'date': row[2],
-                                            'user_id': int(float(row[3])),
-                                            'username': row[4],
-                                            'tweet': row[5], 
-                                            'mentions': row[6], 
-                                            'retweets_count': int(float(row[7])), 
-                                            'hashtags': row[8], 
-                                            'link': row[9]
-                                        }
-                                        mod_list_sample.append(r)
+                                        mod_list_sample.append(row)
                                         
         except IndexError as e:
             print('\n\nERROR:',e, 'Out of edges to sample.\n\n')

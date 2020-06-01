@@ -217,21 +217,20 @@ Sample content in each period per module, based on map equation flow-based commu
 
 ### ```sample_getter```
 
-Samples corpus based on module edge data from infomap data. **NOTE**: It currently assumes the following column types in this exact order:
-  - 'id', 'date', 'user_id', 'username', 'tweet', 'mentions', 'retweets_count', 'hashtags', 'link'
-  - **TODO: Change column lookup and appending process to be flexible for user's needs.
-    
-- Args:
-  - sample_size: Integer. Number of edges to sample.
+Samples corpus based on module edge data from infomap data.    
+
+Args:
+  - sample_size: Integer. Number of edges to sample. To keep all results, use -1 (Int) value.
   - edges: List of Dicts. Edge data.
   - period_corpus: DataFrame. Content corpus to be sampled.
-  - sample_type: String. Option for 
-    - 'modules': Samples tweets based on community module source-target relations.
-    - 'ht_groups': Samples tweets based on use of hashtags. Must provide list of strings.
+  - sample_type: String. Current options include:
+      - 'modules': Samples tweets based on community module source-target relations.
+      - 'ht_groups': Samples tweets based on use of hashtags. Must provide list of strings.
   - user_threshold:
   - random: Boolean. True will randomly sample fully retrieved set of tweet content
   - ht_list: List of strings. If sampling via hashtag groups, then provide a list of the hashtags. Default is None.
-- Return:
+
+Return:
   - DataFrame. Sampled content, based on infomap module edges.
 
 ### ```infomap_edges_sampler```
@@ -329,7 +328,7 @@ Compares hub set with tweet data to ultimately output sampled tweets with hub in
   * ```df_hubs```: Pandas DataFrame of infomapped hubs
   * ```top_rts_sample```: Integer of desired sample size of sorted top tweets (descending order)
   * ```hub_sample```: Integer of desired sample size to output
-  * ```columns```: List of column names; each as a String. **Must match column names from tweet and hub data sets
+  * ```hub_cols```: List of column names (String) from hub file desired to preserve and append to sample.
 * Returns DataFrame of top sampled tweets
 
 ### ```add_infomap```: 
