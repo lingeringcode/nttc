@@ -343,14 +343,14 @@ def plot_tweet_counts(sample_type, dict_samples, zoom, col_list):
                     )
 
 def get_all_tokens(tweet_list):
-    # concat entire corpus
+    # concat corpus
     all_text = ' '.join((t for t in tweet_list))
     # tokenize
     tokens = (TweetTokenizer(preserve_case=False,
                             reduce_len=True,
                             strip_handles=False)
               .tokenize(all_text))
-    # remove symbol-only tokens for now
+    # remove symbol-only tokens
     tokens = [tok for tok in tokens if not tok in string.punctuation]
     return tokens
 
@@ -441,7 +441,7 @@ def tm_vectorizer(sample_type, dict_samples, stop_words):
                     vec = TfidfVectorizer(preprocessor=replace_urls,
                             tokenizer=my_tokenizer,
                             stop_words=stop_words,
-                            max_features=dict_samples[m]['obj'].unique_obs_cnt//100,
+                            max_features=dict_samples[m]['obj'].unique_obs_cnt/100,
                             )
                     dict_samples[m]['obj'].vector = vec
                 except ValueError as e:
@@ -455,12 +455,12 @@ def tm_vectorizer(sample_type, dict_samples, stop_words):
                         vec = TfidfVectorizer(preprocessor=replace_urls,
                             tokenizer=my_tokenizer,
                             stop_words=stop_words,
-                            max_features=dict_samples[p][m]['obj'].unique_obs_cnt//100,
+                            max_features=dict_samples[p][m]['obj'].unique_obs_cnt/100,
                             )
                         dict_samples[p][m]['obj'].vector = vec
                     except ValueError as e:
                         print('\nFor Period', p, 'Module', m, 'assign as None.', 'ValueError ', e)
-                        dict_samples[m][p]['obj'].vector = None
+                        dict_samples[p][m]['obj'].vector = None
     
     return dict_samples
 
@@ -580,6 +580,7 @@ def kmeans_plotter(matrix, title, seed, kv_list):
     plt.plot(kv_list, sil_scores, 'o--')
     plt.ylabel('silhouette score')
     plt.xlabel('k')
+    plt.show()
 
 def compare_kmeans(sample_type, dict_samples, seed, kv_list):
     if sample_type == 'single':
@@ -1645,8 +1646,8 @@ def batch_output_period_hub_samples(**kwargs):
         - period_corpus: DataFrame. Content corpus to be sampled.
         - sample_type: String. Current options include:
             - 'modules': Samples tweets based on community module source-target relations.
-            - 'ht_groups': Samples tweets based on use of hashtags. Must provide list of strings.
-        - user_threshold:
+            - 'ht_group': Samples tweets based on use of hashtags. Must provide list of strings.
+        - user_threshold: Integer. If you want limit sampling an active user, set a limit.
         - random: Boolean. True will randomly sample fully retrieved set of tweet content
         - ht_list: List of strings. If sampling via hashtag groups, then provide a list of the hashtags. Default is None.
     Return:
