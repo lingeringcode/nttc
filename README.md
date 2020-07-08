@@ -32,7 +32,6 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 * pprint
 * gensim
 * spacy
-* re
 * tqdm
 * sklearn
 * MulticoreTSNE
@@ -43,9 +42,9 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 ## Installation
 ```pip install nttc```
 
-## Under Development
+## Known Issues or Limitations
 
-- Sampler for flow-based communities (infomap / map equation) and modularity-based communities
+- Please contact me if you discover any issuess.
 
 ## Example notebooks
 
