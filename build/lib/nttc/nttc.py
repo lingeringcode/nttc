@@ -39,7 +39,7 @@ import pandas as pd
 from pprint import pprint
 import re
 import seaborn as sns
-from sklearn.externals import joblib
+import joblib
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import silhouette_score
@@ -1697,11 +1697,12 @@ def sample_getter(sample_size, edges, period_corpus, sample_type, user_threshold
         if len(res_list) == 0:
             res_list.append(s)
         if len(res_list) > 0:
+            # Check how many times user has been sampled
             user_check = 0
             for c in res_list:
                 if c['username'] == s['username']:
                     user_check = user_check + 1
-            # If specific user has not been oversampled
+            # If specific user does not exceed given threshold, append tweet
             if user_check < user_threshold:
                 res_list.append(s)
     

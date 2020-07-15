@@ -20,6 +20,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 ## System requirements
 
+* arrow
 * [tsm](https://github.com/dfreelon/TSM)
 * [nltk](https://www.nltk.org/)
 * networkx
@@ -33,6 +34,7 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 * re
 * tqdm
 * sklearn
+* joblibs
 * MulticoreTSNE
 * hdbscan
 * seaborn

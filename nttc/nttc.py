@@ -39,7 +39,7 @@ import pandas as pd
 from pprint import pprint
 import re
 import seaborn as sns
-from sklearn.externals import joblib
+import joblib
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import silhouette_score
