@@ -56,8 +56,8 @@ It functions only with Python 3.x and is not backwards-compatible (although one 
 
 <pre>
 # Create new distribution of code for archiving
-sudo python3 setup.py sdist bdist_wheel
+sudo python setup.py sdist bdist_wheel
 
 # Distribute to Python Package Index
-python3 -m twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+python -m twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 </pre>

@@ -381,17 +381,17 @@ def tokenize_em(sample_type, dict_samples, col):
     
     return dict_samples
 
-def top_gram_counter(sample_type, dict_samples):
+def top_gram_counter(sample_type, dict_samples, min_len, max_len):
     if sample_type == 'single':
         for m in dict_samples:
             if 'obj' in dict_samples[m]:
-                top_grams = Counter(everygrams(dict_samples[m]['obj'].tokens, min_len=2, max_len=4))
+                top_grams = Counter(everygrams(dict_samples[m]['obj'].tokens, min_len=min_len, max_len=max_len))
                 dict_samples[m]['obj'].top_grams = top_grams
     elif sample_type == 'multiple':
         for p in dict_samples:
             for m in dict_samples[p]:
                 if 'obj' in dict_samples[p][m]:
-                    top_grams = Counter(everygrams(dict_samples[p][m]['obj'].tokens, min_len=2, max_len=4))
+                    top_grams = Counter(everygrams(dict_samples[p][m]['obj'].tokens, min_len=min_len, max_len=max_len))
                     dict_samples[p][m]['obj'].top_grams = top_grams
     
     return dict_samples
