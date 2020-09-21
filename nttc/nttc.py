@@ -858,6 +858,11 @@ def target_part_lookup(nu_list, target):
     netify_edges(); Accepts list of lists (edges) and replaces the
         usernames with their unique IDs. This prepares output for the
         infomap code system.
+
+    Args:
+        - list_edges
+        - unique_list
+        - 
 '''
 def netify_edges(**kwargs):
     position = 0

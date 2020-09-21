@@ -13,7 +13,7 @@ setup(
   long_description_content_type="text/markdown",
   url = 'https://github.com/lingeringcode/nttc/',
   download_url = 'https://github.com/lingeringcode/nttc/',
-  install_requires = ['arrow', 'joblib', 'pandas', 'numpy', 'emoji', 'nltk', 'pprint', 'gensim', 'spacy', 'tsm', 'sklearn', 'MulticoreTSNE', 'hdbscan', 'seaborn', 'matplot', 'networkx', 'stop_words', 'tqdm'],
+  install_requires = ['arrow', 'joblib', 'pandas', 'numpy', 'emoji', 'nltk', 'gensim', 'spacy', 'tsm', 'sklearn', 'MulticoreTSNE', 'hdbscan', 'seaborn', 'matplot', 'networkx', 'stop_words', 'tqdm'],
   keywords = ['data processing', 'topic modeling', 'naming network communities', 'network graphing'],
   classifiers = [],
   include_package_data=True
