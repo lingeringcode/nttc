@@ -165,6 +165,12 @@ def initializePO():
     return periodObject()
 
 '''
+    Initialize communitiesObject
+'''
+def initializeCGO():
+    return communitiesObject()
+
+'''
     Initialize communityGroupsObject
 '''
 def initializeCGO():
@@ -852,6 +858,11 @@ def target_part_lookup(nu_list, target):
     netify_edges(); Accepts list of lists (edges) and replaces the
         usernames with their unique IDs. This prepares output for the
         infomap code system.
+
+    Args:
+        - list_edges
+        - unique_list
+        - 
 '''
 def netify_edges(**kwargs):
     position = 0
@@ -2127,19 +2138,53 @@ def comm_dict_writer(**kwargs):
     Isolates community's content, then splits string into list of strings per Tweet
         preparing them for the topic modeling.
         Args: 
+            - single: Boolean. True equals single sample vs. multiple communities
             - col_name: String. Community label as String, 
             - dict_comm_obj: Dict of community objects
             - sample_size_percentage: Float. Between 0 and 1. 
+            - stop_words: Stop words list of strings
         Returns as Dataframe of content for respective community
 '''
 def split_community_tweets(**kwargs):
-    for cdf in kwargs['dict_comm_obj']:
+    if kwargs['single'] == False:
+        for cdf in kwargs['dict_comm_obj']:
+            # Sample size
+            print('Length of community', cdf, 'data set:', len(kwargs['dict_comm_obj'][cdf].content_slice))
+            sample_size = len(kwargs['dict_comm_obj'][cdf].content_slice) * kwargs['sample_size_percentage']
+            print('Sample size: ', int(sample_size))
+
+            c_content = kwargs['dict_comm_obj'][cdf].content_slice[kwargs['col_name']][:int(sample_size)]
+            # Split content segments; includes emoji support
+            c_split = []
+            for t in c_content.values.tolist():
+                em_split_emoji = emoji.get_emoji_regexp().split(t)
+                em_split_whitespace = [substr.split() for substr in em_split_emoji]
+                em_split = functools.reduce(operator.concat, em_split_whitespace)
+                # Append split content to list
+                c_split.append(em_split)
+
+            # Transform list into Dataframe
+            df_documents = pd.DataFrame()
+            for ts in c_split:
+                df_documents = df_documents.append( {kwargs['col_name']: ts}, ignore_index=True )
+
+            # Transform into list of processed docs
+            split_docs = df_documents[kwargs['col_name']]
+            cleaned_split_docs = clean_split_docs(split_docs, kwargs['stop_words'])
+            kwargs['dict_comm_obj'][cdf].split_docs = cleaned_split_docs
+
+    elif kwargs['single'] == True:
+        cdf = kwargs['dict_comm_obj'].content_slice
+        
         # Sample size
-        print('Length of community', cdf, 'data set:', len(kwargs['dict_comm_obj'][cdf].content_slice))
-        sample_size = len(kwargs['dict_comm_obj'][cdf].content_slice) * kwargs['sample_size_percentage']
+        print('Length of community data set:', len(cdf))
+        
+        sample_size = len(cdf) * kwargs['sample_size_percentage']
+        
         print('Sample size: ', int(sample_size))
 
-        c_content = kwargs['dict_comm_obj'][cdf].content_slice[kwargs['col_name']][:int(sample_size)]
+        c_content = cdf[kwargs['col_name']][:int(sample_size)]
+        
         # Split content segments; includes emoji support
         c_split = []
         for t in c_content.values.tolist():
@@ -2157,7 +2202,8 @@ def split_community_tweets(**kwargs):
         # Transform into list of processed docs
         split_docs = df_documents[kwargs['col_name']]
         cleaned_split_docs = clean_split_docs(split_docs, kwargs['stop_words'])
-        kwargs['dict_comm_obj'][cdf].split_docs = cleaned_split_docs
+        kwargs['dict_comm_obj'].split_docs = cleaned_split_docs
+    
     print( ' \'processed_docs\': dataframe written for each community dictionary.' )
     return kwargs['dict_comm_obj']
 
@@ -2359,11 +2405,14 @@ def merge_rts_mentions(fo):
         and their topic model component data (tmsd), then pretty
         prints it out to the terminal/notebook for quick access.
 '''
-def print_keywords(tmsd):
-    for c in tmsd:
-        print('COMMUNITY', c)
-        pprint(tmsd[c].model.print_topics())
-        print('\n\n')
+def print_keywords(**kwargs):
+    if kwargs['single'] == True:
+        pprint(kwargs['tmsd'].model.print_topics())
+    elif kwargs['single'] == False:
+        for c in kwargs['tmsd']:
+            print('COMMUNITY', c)
+            pprint(kwargs['tmsd'][c].model.print_topics())
+            print('\n\n')
 
 ##################################################################
 
