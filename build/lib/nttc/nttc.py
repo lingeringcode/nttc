@@ -925,6 +925,9 @@ def infomap_edge_data_lister(dict_map,p_sample,m_sample):
 '''
 def ftree_edge_maker(dict_map):
     re_edge_data = r"(\d{1,10}\s)(\d{1,}\s)(\d\.\d{1,}e-\d{1,}|\d{1,}\.\d{1,})"
+    
+    re_ignore_ftree_links_mods = r"\*Links\s\d{1,}(\:\d{1,}){1,}\s" #ignore these hierarchical lines
+
     # Go through each period
     for p in dict_map:
         print('Processing edge data for period', p)
@@ -932,28 +935,44 @@ def ftree_edge_maker(dict_map):
         for m in dict_map[p]['indices']['ftree_links']:
             start = 0
             end = 0
+            
             # If length of indices == 1 or 0, then there are no edges
             if len(dict_map[p]['indices']['ftree_links'][m]['indices']) == 0 or len(dict_map[p]['indices']['ftree_links'][m]['indices']) == 1:
                 break
+                
             elif dict_map[p]['indices']['ftree_links'][m]['indices'][0] < dict_map[p]['indices']['ftree_links'][m]['indices'][1]:
                 start = dict_map[p]['indices']['ftree_links'][m]['indices'][0]
                 end = dict_map[p]['indices']['ftree_links'][m]['indices'][1]
+            
             # If start equal to end, then there are no edges.
             elif dict_map[p]['indices']['ftree_links'][m]['indices'][0] == dict_map[p]['indices']['ftree_links'][m]['indices'][1]:
                 break
+            
             list_edges = []
             for l in dict_map[p]['lines'][start:end]:
-                group_matches = re.findall(re_edge_data, l)
-                list_edges.append([group_matches[0][0][:-1],group_matches[0][1][:-1],group_matches[0][2]])
+                
+                # Check for ftree submod links and ignoore those lines,
+                # since they're not edges, but metadata
+                re_check_sub_ftree = re.findall(re_ignore_ftree_links_mods, l)
+                if len(re_check_sub_ftree) == 0:
+                
+                    group_matches = re.findall(re_edge_data, l)
+
+                    list_edges.append([group_matches[0][0][:-1],group_matches[0][1][:-1],group_matches[0][2]])
+            
             df = pd.DataFrame(list_edges,columns=['source','target','directed_count'])
+            
             if len(df) > 0:
                 # Append network edge data as dataframe
                 dict_map[p]['indices']['ftree_links'][m]['df_edges'] = df
+            
             else:
                 # Demarcate no edge data as Integer 0
                 dict_map[p]['indices']['ftree_links'][m]['df_edges'] = 0
+
     print('Processing complete!')
     return dict_map
+
 '''
 '''
 def get_link_indices_info(root_check, index, l):
@@ -1485,6 +1504,7 @@ def score_summer(dhn, **kwargs):
                     else:
                         pln.update({'total_period_flow_score': pt})
     return dhn
+
 '''
     output_infomap_hub: Takes fully hydrated infomap dict and outputs it as a CSV file.
         - Args: 
@@ -1503,7 +1523,7 @@ def output_infomap_hub(**kwargs):
                 tracker = 0
                 for r in kwargs['dict_hub'][p]['info_hub'][h]:
                     if tracker < kwargs['filtered_hub_length']:
-                        temp_hub = [int(p), int(h)]
+                        temp_hub = [int(p)]
                         for c in r:
                             temp_hub.append(r[c])
                         hubs.append(temp_hub)
@@ -1525,35 +1545,63 @@ def output_infomap_hub(**kwargs):
         - hub_cols: List of column names from hub file desired to preserve
     - Returns List of Dicts with hub and info_name mentions info
 '''
-def add_infomap(dft, dfh, period_num, hub_cols):
+def add_infomap(dfh, dft, hub_user_col, corpus_user_col, period_col, hub_col):
     period_comms = []
-    df_tweets = dft.copy().reset_index(drop=True)
-    for row in df_tweets.to_dict('records'):
-        m = row['mentions']
-        if isinstance(m, str):
-            m = ast.literal_eval(m)
-            if len(m) > 0:
-                # Go through list of mentions
-                for mentioned in m:
-                    found_hubber = dfh[(dfh.period == period_num) & (dfh.node_name == mentioned)]
-                    fh = found_hubber.to_dict('records')
-                    if len(fh) > 0:
-                        for i in fh:
-                            new_dict = {}                            
-                            # 1. Append desired hub columns
-                            for c in hub_cols:
+    for mrow in dfh.to_dict('records'):
+        # 1. Find user's tweets
+        author_query = dft[dft[corpus_user_col] == mrow[hub_user_col]]
+
+        # 2. Track period and hub
+        current_period_num = mrow[period_col]
+        current_hub_num = mrow[hub_col]
+
+        current_hub = dfh[ (dfh[period_col] == current_period_num) & (dfh[hub_col] == current_hub_num) ]
+
+        # 3. Find tweets with module mentions
+        for trow in author_query.to_dict('records'):
+            m = trow['mentions']
+            if isinstance(m, str):
+                m = ast.literal_eval(m)
+                if len(m) > 0:
+                    # 4. Go through list of mentions
+                    for mentioned in m:
+                        new_dict = {}
+                        # 5. Go through hub list 
+                        for module in current_hub.to_dict('records'):
+                            # 6. If matched module, append
+                            if mentioned == module[hub_user_col]:
                                 new_dict.update({
-                                    c: i[c]
+                                    'period':current_period_num,
+                                    'module':current_hub_num,
                                 })
-                            
-                            # 2. Append tweet data
-                            for r in row:
-                                new_dict.update({
-                                    r: row[r]
-                                })
-                            
-                            # 3. Append to main list
-                            period_comms.append(new_dict)
+                                
+                                for r in trow:
+                                    new_dict.update({
+                                        r: trow[r]
+                                    })
+                                
+                                # 3. Append to main list
+                                period_comms.append(new_dict)
+
+                            # found_hubber = dfh[dfh[hub_user_col] == mentioned]
+                            # fh = found_hubber.to_dict('records')
+                            # if len(fh) > 0:
+                            #     for i in fh:
+                            #         new_dict = {}                            
+                            #         # 1. Append desired hub columns
+                            #         for c in hub_cols:
+                            #             new_dict.update({
+                            #                 c: i[c]
+                            #             })
+                                    
+                            #         # 2. Append tweet data
+                            #         for r in row:
+                            #             new_dict.update({
+                            #                 r: row[r]
+                            #             })
+                                    
+                            #         # 3. Append to main list
+                            #         period_comms.append(new_dict)
                     
     return period_comms
 
@@ -1594,11 +1642,12 @@ def sampling_module_hubs(**kwargs):
             sliced_hub = kwargs['df_hubs'][kwargs['df_hubs']['period'] == int(p)].copy()
             period_num = int(p)
             new_rows = add_infomap(
-                dft=df_output,
                 dfh=sliced_hub,
-                period_num=period_num,
-                hub_cols=kwargs['hub_cols']
-            )
+                dft=df_output,
+                hub_user_col=kwargs['hub_user_col'],
+                corpus_user_col=kwargs['corpus_user_col'],
+                period_col=kwargs['period_col'],
+                hub_col=kwargs['hub_col']            )
             
             # 5. Append period's dicts of tweets to list
             module_output = module_output + new_rows
@@ -2109,11 +2158,19 @@ def create_hub_csv_files(**kwargs):
         - col_tweets: String. Column name for tweet content
 '''
 def get_all_comms(dft, col_community, col_tweets):
-    acts = dft.loc[:, lambda dft: [col_community, col_tweets]] # all tweets per Community
-    return acts
+    new = []
+    for row in dft.to_dict('records'):
+        r = {
+            col_community: row[col_community],
+            col_tweets: row[col_tweets]
+        }
+        new.append(r)
+    df = pd.DataFrame(new)
+    return df
 
 '''
-    Write per Community content segments into a dictionary
+    Write per Community content segments into a dictionary. This requires a corpus with
+        defined period and community module columns.
     - Args:
         - comm_list= List of community numbers / labels
         - df_content= DataFrame of data set in question
@@ -2124,6 +2181,7 @@ def get_all_comms(dft, col_community, col_tweets):
 '''
 def comm_dict_writer(**kwargs):
     dict_c = {}
+    all_comms = kwargs['df_content']
     for c in kwargs['comm_list']:
         out_comm_obj = communitiesObject()
         all_comms = get_all_comms(kwargs['df_content'], kwargs['comm_col'], kwargs['content_col'])
